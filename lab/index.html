@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Suspension lab</title>
+<link rel="icon" type="image/png" href="../logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{--bg:#eef0ee;--surface:#fff;--fg:#1b1f22;--muted:#5a6268;--line:#d4d9d6;--accent:#c25a16;--accent-ink:#9a4510;--ref:#9aa3a8;
+  --display:"Archivo",system-ui,sans-serif;--body:"Source Serif 4",Georgia,serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121517;--surface:#1a1e21;--fg:#e7e9e5;--muted:#a2aaaf;--line:#2c3236;--accent:#ec8a43;--accent-ink:#f2a46b;--ref:#6b7378;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121517;--surface:#1a1e21;--fg:#e7e9e5;--muted:#a2aaaf;--line:#2c3236;--accent:#ec8a43;--accent-ink:#f2a46b;--ref:#6b7378;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 var(--body)}
+.wrap{max-width:1500px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;border-bottom:2px solid var(--fg);padding-bottom:10px}
+header h1{font:800 clamp(1.6rem,4vw,2.4rem)/1 var(--display);font-stretch:115%;margin:0}
+header a{font:600 .8rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);text-decoration:none}
+.lede{max-width:75ch;color:var(--muted);margin:10px 0 0}
+#status{font:600 .8rem var(--mono);color:var(--accent-ink);margin:10px 0;min-height:1.2em}
+.grid{display:grid;grid-template-columns:330px 1fr;gap:16px;margin-top:8px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px}
+.panel h2{font:700 .8rem var(--mono);letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px;color:var(--muted)}
+details{border-top:1px solid var(--line);padding:6px 0}
+summary{cursor:pointer;font:700 .95rem var(--display)}
+.sl{margin:8px 0}
+.sl label{display:flex;justify-content:space-between;gap:8px;font-size:.85rem}
+.sl label b{font:600 .8rem var(--mono);color:var(--accent-ink);white-space:nowrap}
+.sl small{display:block;font:500 .7rem var(--mono);color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.vars label{display:block;font-size:.88rem}
+button{font:600 .8rem var(--mono);background:none;border:1px solid var(--line);color:var(--fg);border-radius:4px;padding:6px 10px;cursor:pointer;margin-top:8px}
+button:hover{border-color:var(--accent)}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:1100px){.views{grid-template-columns:1fr}}
+.view svg{width:100%;height:auto;display:block;background:var(--surface)}
+.read{font:500 .75rem/1.5 var(--mono);color:var(--muted);margin-top:4px}
+.charts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+@media (max-width:700px){.charts{grid-template-columns:1fr}}
+.chart svg{width:100%;height:auto;display:block}
+.chart .t{font:600 .75rem var(--mono);color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right}
+td:first-child,th:first-child{text-align:left}
+th{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pos{color:#2e8b57}.neg{color:#c0392b}
+.note{font-size:.85rem;color:var(--muted);max-width:90ch}
+.legend{font:500 .72rem var(--mono);color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin:0 4px 0 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>Suspension lab</h1><a href="../index.html">← Journal</a></header>
+<p class="lede">Play with the suspension of our BMW 1600 Touring: pick a setup, move the sliders and see the
+front and rear axle move, the roll centres shift and the handling numbers change. It runs the same Python model
+we use at home, right in your browser. The first load takes a while (it downloads Python and SciPy, ~30 MB, cached afterwards).</p>
+<div id="status">Loading Python…</div>
+<div class="grid">
+  <aside class="panel" id="controls" hidden>
+    <h2>Setup</h2>
+    <div class="vars" id="variants"></div>
+    <div id="sliders"></div>
+    <button id="reset">Reset sliders</button>
+    <details open><summary>Pose (display only)</summary>
+      <div class="sl"><label>Heave / wheel travel <b id="o-heave">0 mm</b></label><input type="range" id="heave" min="-80" max="80" step="1" value="0"></div>
+      <div class="sl"><label>Body roll (+ right side down) <b id="o-roll">0°</b></label><input type="range" id="roll" min="-6" max="6" step="0.1" value="0"></div>
+      <div class="sl"><label>Steering (centre-link travel) <b id="o-steer">0 mm</b></label><input type="range" id="steer" min="-40" max="40" step="1" value="0"></div>
+    </details>
+  </aside>
+  <main id="main" hidden>
+    <div class="views">
+      <div class="panel view"><h2>Front axle — seen from the front</h2><svg id="v-front" viewBox="-1000 -980 2000 1130"></svg><div class="read" id="r-front"></div></div>
+      <div class="panel view"><h2>Rear axle — seen from behind</h2><svg id="v-rear" viewBox="-1000 -980 2000 1130"></svg><div class="read" id="r-rear"></div></div>
+    </div>
+    <div class="panel" style="margin-top:12px"><h2>Kinematics vs wheel travel</h2>
+      <div class="legend"><i style="background:var(--ref)"></i>baseline (the car as it is)<i style="background:var(--accent)"></i>front, current<i style="background:#2c5d8a"></i>rear, current</div>
+      <div class="charts" id="charts"></div></div>
+    <div class="panel" style="margin-top:12px"><h2>Results — steady-state cornering, ride</h2>
+      <table id="results"></table>
+      <p class="note">Steady state, driver on board, no aero. Many inputs are still estimates from books, drawings and
+      forums (the car is in Greece and hasn't been measured yet), so compare setups with each other rather than trusting
+      the absolute numbers. Part shapes are indicative; the suspension pickup points drive the kinematics.</p></div>
+  </main>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+const MANIFEST = {"files": ["vdm/__init__.py", "vdm/params.py", "vdm/kinematics.py", "vdm/steady_state.py", "vdm/tyre.py", "vdm/drawing.py", "vdm/web.py", "inputs/baseline.yaml", "inputs/sources.yaml", "inputs/variants/wheels_FPS_5J_ET26.yaml", "inputs/variants/lowered_WN_springs.yaml", "inputs/variants/rc_spacers_20.yaml", "inputs/variants/alpina_bilstein_struts.yaml", "inputs/variants/arb_ST_22_19.yaml", "inputs/tyres/generic_185_70R13.yaml"], "stamp": "53b2c2c731"};
+const $ = id => document.getElementById(id);
+let py, web, variants = [], sliders = [], values = {}, busy = false, pending = null;
+const status = t => $("status").textContent = t;
+
+async function boot(){
+  try{
+    py = await loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"});
+    status("Loading NumPy, SciPy, PyYAML…");
+    await py.loadPackage(["numpy","scipy","pyyaml"]);
+    status("Loading the model…");
+    for (const f of MANIFEST.files){
+      const r = await fetch("model/"+f+"?v="+MANIFEST.stamp); if(!r.ok) throw new Error("missing "+f);
+      const dir = "/model/"+f.split("/").slice(0,-1).join("/");
+      py.FS.mkdirTree(dir); py.FS.writeFile("/model/"+f, new Uint8Array(await r.arrayBuffer()));
+    }
+    py.runPython("import sys; sys.path.insert(0,'/model')\nfrom vdm import web");
+    web = py.globals.get("web");
+    JSON.parse(web.variants()).forEach(v=>{
+      const l=document.createElement("label");
+      l.innerHTML=`<input type="checkbox" value="${v.file}"> ${v.label}`;
+      l.querySelector("input").addEventListener("change", onVariants); $("variants").appendChild(l);
+    });
+    buildSliders("[]");
+    $("controls").hidden=false; $("main").hidden=false;
+    ["heave","roll","steer"].forEach(id=>$(id).addEventListener("input",()=>{updPoseLabels(); schedule(false)}));
+    $("reset").addEventListener("click",()=>{buildSliders(JSON.stringify(variants)); schedule(true)});
+    await run(true);
+  }catch(e){ status("Could not start: "+e.message); console.error(e); }
+}
+
+function buildSliders(vjson){
+  sliders = JSON.parse(web.setup(vjson)); values = {};
+  const groups = {}; $("sliders").innerHTML="";
+  sliders.forEach(s=>{
+    values[s.path]=s.value;
+    if(!groups[s.group]){ const d=document.createElement("details"); d.innerHTML=`<summary>${s.group}</summary>`; $("sliders").appendChild(d); groups[s.group]=d; }
+    const w=document.createElement("div"); w.className="sl";
+    w.innerHTML=`<label>${s.label} <b>${fmt(s.value)}</b></label><input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}"><small>car as is: ${fmt(s.baseline)}</small>`;
+    const inp=w.querySelector("input"), out=w.querySelector("b");
+    inp.addEventListener("input",()=>{values[s.path]=parseFloat(inp.value); out.textContent=fmt(values[s.path]); schedule(true)});
+    groups[s.group].appendChild(w);
+  });
+}
+function onVariants(){
+  variants=[...document.querySelectorAll("#variants input:checked")].map(i=>i.value);
+  buildSliders(JSON.stringify(variants)); schedule(true);
+}
+const fmt = v => Math.abs(v)>=100 ? v.toFixed(0) : Math.abs(v)>=10 ? v.toFixed(1) : v.toFixed(2).replace(/\.?0+$/,"") || "0";
+function updPoseLabels(){ $("o-heave").textContent=$("heave").value+" mm"; $("o-roll").textContent=$("roll").value+"°"; $("o-steer").textContent=$("steer").value+" mm"; }
+
+let timer=null, needFull=false;
+function schedule(full){ needFull = needFull||full; clearTimeout(timer); timer=setTimeout(()=>run(needFull), full?350:40); }
+async function run(full){
+  if(busy){ pending=full||pending; return; }
+  busy=true; needFull=false;
+  try{
+    if(full){ status("Computing…"); await new Promise(r=>setTimeout(r,20));
+      const t0=performance.now();
+      const r=JSON.parse(web.compute(JSON.stringify(variants), JSON.stringify(values)));
+      drawResults(r); drawCharts(r);
+      status(`Computed in ${((performance.now()-t0)/1000).toFixed(1)} s · ${r.n_overrides} change(s) vs the selected setup · limit: ${r.limit}`);
+    }
+    const p=JSON.parse(web.pose(+$("heave").value, +$("roll").value, +$("steer").value));
+    drawView("front", p.front, false); drawView("rear", p.rear, true);
+  }catch(e){ status("This combination can't be solved (geometry out of range): "+e.message.split("\n").slice(-2)[0]); }
+  busy=false;
+  if(pending!==null){ const f=pending; pending=null; run(f); }
+}
+
+function pts(a, mirror){ return a.map(q=>`${(mirror?-q[0]:q[0]).toFixed(1)},${(-q[1]).toFixed(1)}`).join(" "); }
+function drawView(axle, v, mirror){
+  let s="";
+  const X = x => (mirror?-x:x);
+  // ground
+  const g=v.ground, dx=g[0][0]-g[1][0], dy=g[0][1]-g[1][1], L=Math.hypot(dx,dy), ux=dx/L, uy=dy/L;
+  s+=`<polyline points="${pts([[g[1][0]-300*ux,g[1][1]-300*uy],[g[0][0]+300*ux,g[0][1]+300*uy]],mirror)}" stroke="#795548" stroke-width="10" fill="none"/>`;
+  v.shapes.forEach(sh=>{
+    if(sh.k==="fill") s+=`<polygon points="${pts(sh.p,mirror)}" fill="${sh.c}" fill-opacity="${sh.a}" stroke="#111" stroke-width="1.2"/>`;
+    else s+=`<polyline points="${pts(sh.p,mirror)}" fill="none" stroke="${sh.c}" stroke-width="${sh.w*3}"/>`;
+  });
+  v.ic_lines.forEach(l=>{ s+=`<polyline points="${pts(l,mirror)}" fill="none" stroke="#d35400" stroke-width="3" stroke-dasharray="14 10"/>`; });
+  if(v.rc){ s+=`<circle cx="${X(v.rc[0])}" cy="${-v.rc[1]}" r="16" fill="#d35400"/>`+
+             `<text x="${X(v.rc[0])+28}" y="${-v.rc[1]-24}" font-family="JetBrains Mono,monospace" font-size="52" font-weight="700" fill="#d35400">RC ${v.rc_height} mm</text>`; }
+  $("v-"+axle).innerHTML=s;
+  $("r-"+axle).innerHTML=v.read.map(r=>`${r.side==="L"?"Left":"Right"}: travel ${r.travel>0?"+":""}${r.travel} mm · camber ${r.camber>0?"+":""}${r.camber}° · toe ${r.toe>0?"+":""}${r.toe}′`).join("<br>");
+}
+
+function chart(title, xs, series){
+  const W=320,H=190,P={l:42,r:8,t:8,b:26};
+  const all=series.flatMap(s=>s.y), lo=Math.min(...all), hi=Math.max(...all), pad=(hi-lo)*0.08||1;
+  const y0=lo-pad, y1=hi+pad, x0=xs[0], x1=xs[xs.length-1];
+  const sx=x=>P.l+(x-x0)/(x1-x0)*(W-P.l-P.r), sy=y=>H-P.b-(y-y0)/(y1-y0)*(H-P.t-P.b);
+  let s=`<svg viewBox="0 0 ${W} ${H}" font-family="JetBrains Mono,monospace" font-size="9" fill="currentColor">`;
+  for(let i=0;i<=4;i++){ const yv=y0+(y1-y0)*i/4, yy=sy(yv); s+=`<line x1="${P.l}" x2="${W-P.r}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${P.l-4}" y="${yy+3}" text-anchor="end" fill="var(--muted)">${yv.toFixed(Math.abs(y1-y0)<5?2:0)}</text>`; }
+  [-80,-40,0,40,80].forEach(xv=>{ s+=`<text x="${sx(xv)}" y="${H-10}" text-anchor="middle" fill="var(--muted)">${xv}</text>`; });
+  s+=`<line x1="${sx(0)}" x2="${sx(0)}" y1="${P.t}" y2="${H-P.b}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
+  series.forEach(se=>{ s+=`<polyline fill="none" stroke="${se.c}" stroke-width="${se.w||2}" points="${xs.map((x,i)=>sx(x).toFixed(1)+","+sy(se.y[i]).toFixed(1)).join(" ")}"/>`; });
+  return `<div class="chart"><div class="t">${title}</div>${s}</svg></div>`;
+}
+function drawCharts(r){
+  const c=r.curves, b=r.curves_ref, out=[];
+  [["camber","Camber [°]"],["toe","Toe [′, + in]"],["rc","Roll centre height [mm]"]].forEach(([k,t])=>{
+    out.push(chart(t+" vs travel [mm]", c.front.travel, [
+      {y:b.front[k],c:"var(--ref)",w:3},{y:b.rear[k],c:"var(--ref)",w:3},
+      {y:c.front[k],c:"var(--accent)"},{y:c.rear[k],c:"#2c5d8a"}]));
+  });
+  $("charts").innerHTML=out.join("");
+}
+function drawResults(r){
+  let h="<tr><th>Quantity</th><th>Car as is</th><th>This setup</th><th>Change</th></tr>";
+  Object.keys(r.results).forEach(k=>{
+    const a=r.baseline[k], b=r.results[k], d=b-a, n=Math.abs(a)>=100?0:Math.abs(a)>=10?1:2;
+    h+=`<tr><td>${k}</td><td>${a.toFixed(n)}</td><td>${b.toFixed(n)}</td><td class="${Math.abs(d)<1e-6?"":(d>0?"pos":"neg")}">${Math.abs(d)<1e-6?"–":(d>0?"+":"")+d.toFixed(n)}</td></tr>`;
+  });
+  $("results").innerHTML=h;
+}
+boot();
+</script>
+</body>
+</html>

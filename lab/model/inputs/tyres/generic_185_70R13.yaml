@@ -1,0 +1,39 @@
+# Generic 185/70 R13 road tyre — "MF-lite" (Magic Formula 5.2 subset, pure + combined via friction ellipse)
+# STATUS: placeholder (conf C/D). Plan: replace by the full MF 6.1 passenger-tyre set from
+# Pacejka Appendix 3 (PAC), scaled with λ factors (see docs/extracts/tools_tyres_research.md),
+# or by measured data if obtainable via TU Delft / TU/e flat-plank tester.
+#
+# Lateral:  Fy = D sin(C atan(Bα − E(Bα − atan Bα))) + camber term
+#   D  = mu_y(Fz) · Fz,  mu_y = mu_y0 · (1 + dmu_y · dfz),  dfz = (Fz − Fz0)/Fz0
+#   BCD = Kya(Fz) = pKy1 · Fz0 · sin(2 atan(Fz / (pKy2 · Fz0)))
+# Longitudinal analogous with mu_x, Kxk = kx_per_load · Fz.
+
+meta: {name: generic_185_70R13, description: generic radial road tyre, 70 series, 13 inch}
+
+geometry:
+  unloaded_radius: {value: 294.6, unit: mm, src: [EST], conf: A, note: "13·25.4/2 + 0.70·185"}
+  width:           {value: 185, unit: mm, src: [EST], conf: A}
+  rolling_circumference: {value: 1803, unit: mm, src: [GH-p101], conf: B, note: "GH gives 1803 for 185/70-13 (= 165SR13); FAQ 1850 → check"}
+  vertical_stiffness: {value: 190, unit: kN/m, src: [EST], conf: C, note: "70-series, ~1.9 bar; range 170–210"}
+  vertical_damping:   {value: 150, unit: Ns/m, src: [EST], conf: C}
+  relaxation_length_y: {value: 0.50, unit: m, src: [EST], conf: C, note: "range 0.4–0.6 m for soft sidewall"}
+  rolling_resistance: {value: 0.012, unit: "-", src: [EST], conf: C}
+
+lateral:
+  Fz0:     {value: 3000, unit: N, src: [EST], conf: C, note: "nominal load"}
+  mu_y0:   {value: 1.00, unit: "-", src: [EST], conf: C, note: "dry asphalt, modern wet-biased road tyre (Rain Expert 3): 0.95–1.05"}
+  dmu_y:   {value: -0.10, unit: "-", src: [EST], conf: C, note: "load sensitivity per unit dfz"}
+  C:       {value: 1.30, unit: "-", src: [PAC], conf: B, note: "typical pCy1"}
+  E:       {value: -0.80, unit: "-", src: [EST], conf: C}
+  pKy1:    {value: 15.0, unit: "-", src: [EST], conf: C, note: "Kya at Fz=Fz0·pKy2/… ≈ 13–14 /rad · Fz0 at nominal load"}
+  pKy2:    {value: 1.8, unit: "-", src: [PAC], conf: C}
+  camber_stiffness_per_load: {value: 0.9, unit: 1/rad, src: [EST], conf: C, note: "Fy_gamma ≈ 0.9 · Fz · γ (radial road tyre), applied as equivalent slip shift"}
+  camber_mu_gain: {value: 0.05, unit: "-", src: [EST], conf: D, note: "peak μ gain at optimum camber (leaning into the turn); parabola, 0 at γ=0"}
+  camber_opt:     {value: 3.0, unit: deg, src: [EST], conf: D, note: "optimum camber toward turn centre, road radial"}
+
+longitudinal:
+  mu_x0:   {value: 1.05, unit: "-", src: [EST], conf: C}
+  dmu_x:   {value: -0.08, unit: "-", src: [EST], conf: C}
+  C:       {value: 1.60, unit: "-", src: [PAC], conf: B}
+  E:       {value: 0.0, unit: "-", src: [EST], conf: C}
+  kx_per_load: {value: 18.0, unit: "-", src: [EST], conf: C, note: "slip stiffness / Fz, per unit slip ratio"}

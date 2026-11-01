@@ -1,0 +1,6 @@
+meta:
+  name: arb_ST_22_19
+  description: "Suspension Techniques 52000 kit: 22 mm front / 19 mm rear (example aftermarket ARBs)"
+set:
+  suspension.front.arb.diameter: {value: 22, unit: mm, src: [WEB-02FAQ], conf: B}
+  suspension.rear.arb.diameter:  {value: 19, unit: mm, src: [WEB-02FAQ], conf: B}

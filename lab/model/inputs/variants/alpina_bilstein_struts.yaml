@@ -1,0 +1,7 @@
+meta:
+  name: alpina_bilstein_struts
+  description: "Alpina Bilstein USD 'yellow' front struts (on hand, keep): ~−1.5° built-in camber, spring perch ~20 mm lower"
+set:
+  suspension.front.strut_camber_offset: {value: -1.5, unit: deg, src: [FAQ, TD], conf: C}
+  suspension.front.spring_seat_lower_from_top: {value: 320, unit: mm, src: [FAQ, EST], conf: D, note: "baseline + 20 mm perch drop"}
+  suspension.front.damper.model: {value: "Bilstein USD insert, road valving 220/120", src: [FAQ], conf: C}

@@ -1,0 +1,45 @@
+# Source register. Every `src:` id used in the input files must be listed here.
+# Paths are relative to the project root (3_BMW_1600_Touring).
+# Full extraction tables with page numbers are in docs/extracts/*.md.
+
+sources:
+  # --- factory documents -------------------------------------------------------------
+  MAN-BODY:   {kind: factory, ref: "05_Reference/Manuals_Flyers_Specs/BMW_02/Manual/Individual/6.Bodywork.PDF p3 (41-0/5): dimensions, weights, axle loads"}
+  MAN-FA:     {kind: factory, ref: "…/Manual/Individual/2.Front_Axle.PDF p2-p4 (31-0/3…): track, travel, springs, strut, ARB"}
+  MAN-RA:     {kind: factory, ref: "…/Manual/Individual/3.Rear_Axle.PDF p2-p7 (33-0/3…): track, travel, springs, dampers, ARB, final drives, LSD"}
+  MAN-RA39:   {kind: factory, ref: "…/Manual/Individual/3.Rear_Axle.PDF p39 (33-31/1): rear axle carrier check dims A-D. Copy: docs/drawings/rear_axle_carrier_check_dims.png"}
+  MAN-FRAME:  {kind: factory, ref: "…/Manual/02_1502-2002turbo_Rep-Anleitung…pdf p546-547 (41-0/3, 9.71): Rahmenkontrollmaße 1602-2002tii + all Touring. Copy: docs/drawings/frame_check_*.png"}
+  MAN-ST:     {kind: factory, ref: "01_Car/Parts/Steering/32112670555_6.pdf and Manual 25.Steering_Wheel_Alignment.PDF p2-3 (32-0/3): alignment at normal load, steering ratio, lock"}
+  MAN-WT:     {kind: factory, ref: "…/Manual/Individual/26.Wheels_Tires.PDF p2 (36-0/3): rims, tyres, pressures"}
+  MAN-GB:     {kind: factory, ref: "…/Manual/Individual/18.Gearbox.PDF p3,p5 (23-0/3, 23-0/5): Getrag 232, 235/5 ratios"}
+  MAN-CL:     {kind: factory, ref: "…/Manual/Individual/8.Clutch.PDF p2 (21-0/4)"}
+  MAN-BR:     {kind: factory, ref: "…/Manual/Individual/7.Brakes.PDF p2-3 (34-0/3)"}
+  MAN-ENG:    {kind: factory, ref: "…/Manual/Individual/11.Engine_Mechanical.pdf p3 (11-0/3): engine data, rev limits"}
+  VIN-PLATE:  {kind: car, ref: "01_Car/Service_Data/BMW_1600_Touring_Technical_Details.docx, VIN plate photo: GVW 1450, rear axle 780 kg"}
+  TD:         {kind: car, ref: "01_Car/Service_Data/BMW_1600_Touring_Technical_Details.docx: fitted parts of THIS car"}
+  KONI-CAT:   {kind: supplier, ref: "01_Car/Parts/Front_Axle/Koni_Shock_Absorbers/AutoCatalog.pdf (BMW E10 section): 86-1519 / 80-1868"}
+  # --- books / secondary --------------------------------------------------------------
+  GH:         {kind: book, ref: "05_Reference/Books/Gert_Hack_GS-Tuning_(german).pdf (Gert Hack, BMW GS-Tuning, 1971). Book page = PDF page + 3"}
+  GH-p9:      {kind: book, ref: "GH p.9: kerb weights, acceleration data"}
+  GH-p10:     {kind: book, ref: "GH p.10: power required vs speed (Typenreihe 114), 152 PS at 200 km/h"}
+  GH-p13:     {kind: book, ref: "GH p.13: 2002 torque/power curves (digitized ±0.3 mkp)"}
+  GH-p14:     {kind: book, ref: "GH p.14: engine data table"}
+  GH-p82:     {kind: book, ref: "GH p.82: final drives, Vmax"}
+  GH-p97:     {kind: book, ref: "GH p.97: rim weights and track increase per rim width"}
+  GH-p99:     {kind: book, ref: "GH p.99: anti-roll bar sizes"}
+  GH-p101:    {kind: book, ref: "GH p.101: tyre rolling circumferences"}
+  FAQ:        {kind: own, ref: "05_Reference/BMW_02_FAQ.docx (owner's knowledge base)"}
+  SPR:        {kind: own, ref: "01_Car/Calculations/BMW2002Springs.xlsx (spring dims, colour classes, forum-calculated rates)"}
+  LSD-DOC:    {kind: secondary, ref: "05_Reference/Manuals_Flyers_Specs/BMW_02/2002_Strongest2002LimitedSlipDifferentialBuild.docx"}
+  CLUB-CMP:   {kind: club, ref: "05_Reference/Manuals_Flyers_Specs/BMW_02/VERGLEICH+TOURING-LIMOSINE-1920w.webp: Touring vs sedan (Touring height 1360, tank 52 L, kerb 1030) + side drawing"}
+  GO-BP:      {kind: drawing, ref: "getoutlines.com BMW 2002 tii blueprint (CC BY 4.0), docs/overlays/getoutlines_2002tii — display only"}
+  # --- web ----------------------------------------------------------------------------
+  CAMS:       {kind: official, ref: "Motorsport Australia historic spec form BMW 2002 / 2002 Ti (motorsport.org.au) – see docs/extracts/web_chassis_extract.md"}
+  TSUP:       {kind: factory, ref: "BMW 2002 turbo Technical Supplement (bmw2002.co.uk reprint)"}
+  IE:         {kind: secondary, ref: "Ireland Engineering tech sheets (iemotorsport.com): race suspension, diffs"}
+  MK87:       {kind: secondary, ref: "Motor Klassik 3/1987 Cd list via e9-forum.de: 02 Cd 0.397 (factory) / 0.471 (DB tunnel)"}
+  WEB-02FAQ:  {kind: forum, ref: "bmw2002faq.com threads (search snippets; verify in browser) – see docs/extracts/web_chassis_extract.md"}
+  PAC:        {kind: book, ref: "Pacejka & Besselink, Tire and Vehicle Dynamics, 3rd ed. (2012), Ch.4 + Appendix 3"}
+  # --- our own derivations --------------------------------------------------------------
+  EST:        {kind: estimate, ref: "Engineering estimate; method written next to the value or in docs/estimates.md"}
+  EST-FRAME:  {kind: estimate, ref: "Derived from MAN-FRAME / MAN-RA39 drawing + assumptions, see docs/estimates.md §Hardpoints"}
