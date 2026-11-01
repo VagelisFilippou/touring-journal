@@ -1,0 +1,10 @@
+meta:
+  name: lowered_WN_springs
+  description: "Walloth & Nesch 4-spring lowering set 31 31 0 440 006 (bought 12/2025): ~−15…−20 mm, 13.4 mm wire F+R. Rates unknown → placeholders"
+set:
+  chassis.ride_height_change_front: {value: -20, unit: mm, src: [FAQ], conf: C}
+  chassis.ride_height_change_rear:  {value: -20, unit: mm, src: [FAQ], conf: C}
+  suspension.front.spring.wire_d:   {value: 13.4, unit: mm, src: [FAQ], conf: C}
+  suspension.front.spring.rate:     {value: 30, unit: N/mm, src: [EST], conf: D, note: "13.4 wire, coils unknown; MEASURE/ask W&N"}
+  suspension.rear.spring.wire_d:    {value: 13.4, unit: mm, src: [FAQ], conf: C}
+  suspension.rear.spring.rate:      {value: 36, unit: N/mm, src: [EST], conf: D}

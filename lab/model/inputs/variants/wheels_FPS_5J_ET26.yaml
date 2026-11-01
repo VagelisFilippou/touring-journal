@@ -1,0 +1,7 @@
+meta:
+  name: wheels_FPS_5J_ET26
+  description: "Touring Sportpaket FPS alloys 5J x 13 ET26 with Nankang Econex NA-1 185/70 R13 (ready set, TD)"
+set:
+  wheels.rim_width:  {value: 5.0, unit: in, src: [TD], conf: A}
+  wheels.offset_ET:  {value: 26, unit: mm, src: [TD, FAQ], conf: A, note: "track −16 mm vs 5.5J ET18"}
+  wheels.mass_rim:   {value: 5.0, unit: kg, src: [GH-p97], conf: C, note: "5/5.5J light alloy 4.8–5.0"}

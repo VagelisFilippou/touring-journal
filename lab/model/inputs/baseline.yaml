@@ -1,0 +1,235 @@
+# =====================================================================================
+#  BMW 1600 Touring (E6, built 09/1971) — BASELINE = the car as it is now
+#  (state per TD, 2026). Conventions: docs/conventions.md. Sources: inputs/sources.yaml.
+#  Leaf format: {value, unit, src: [ids], conf: A|B|C|D, note}
+#    A factory/measured · B credible secondary · C forum or estimate with method · D placeholder
+#  Hardpoints: left side, mm, x fwd / y left / z up, origin = ground below front wheel
+#  centres, car at "normal load" (alignment reference state, see reference_state).
+# =====================================================================================
+
+meta:
+  car: BMW 1600 Touring (E6), M10B20 conversion
+  state: baseline 2026
+  reference_state: >
+    "Normal load" (BMW alignment reference): 2 x 68 kg front seats, 1 x 68 kg rear seat,
+    21 kg in boot (left), full tank. All alignment values, ride heights and hardpoints are
+    at this state.
+
+# -------------------------------------------------------------------------------------
+chassis:
+  wheelbase:      {value: 2500, unit: mm, src: [CAMS, TSUP], conf: A, note: "not in the workshop manual; identical in all sources"}
+  overall_length: {value: 4110, unit: mm, src: [MAN-BODY], conf: A, note: Touring (sedan 4230)}
+  overall_width:  {value: 1590, unit: mm, src: [MAN-BODY], conf: A}
+  overall_height: {value: 1380, unit: mm, src: [MAN-BODY, CLUB-CMP], conf: A, note: "Touring (sedan 1410). Club comparison sheet says 1360"}
+  fuel_tank:      {value: 52, unit: L, src: [CLUB-CMP], conf: B, note: "Touring 52 L (sedan 46 L)"}
+  ground_clearance_laden: {value: 160, unit: mm, src: [MAN-BODY], conf: A}
+  datum_height: {value: 200, unit: mm, src: [EST-FRAME], conf: C,
+    note: "height above ground of the frame-check line '0' (front subframe mount face A) at normal load; = strut top z (750) − 549.4"}
+  # Modification knobs (0 in baseline). Kinematics applies them to the hardpoints above.
+  ride_height_change_front: {value: 0, unit: mm, src: [EST], conf: A, note: "body lowered (−) / raised (+) relative to wheels at normal load"}
+  ride_height_change_rear:  {value: 0, unit: mm, src: [EST], conf: A}
+  ride_height_ref:   # BMW measure: lower edge of wheel arch to rim flange (below), unrelated to hardpoint datum
+    front_normal:  {value: 509, unit: mm, src: [MAN-ST, FAQ], conf: A, note: "±8"}
+    rear_normal:   {value: 463, unit: mm, src: [MAN-RA, MAN-ST], conf: A, note: "+8"}
+    front_unladen: {value: 545, unit: mm, src: [FAQ], conf: B, note: "±10, 02-club.de"}
+    rear_unladen:  {value: 500, unit: mm, src: [FAQ], conf: B, note: "±10"}
+
+# -------------------------------------------------------------------------------------
+mass:
+  kerb:            {value: 1030, unit: kg, src: [MAN-BODY], conf: A, note: "1600 Touring, DIN kerb (full tank). 2.0 engine ≈ +5 kg ignored"}
+  front_fraction_kerb: {value: 0.53, unit: "-", src: [EST], conf: C,
+    note: "2002 sedan 539/455 kg = 54% (AMS 4/1968, WEB-02FAQ); Touring has more mass behind the rear axle → 53%"}
+  gross:           {value: 1450, unit: kg, src: [MAN-BODY, VIN-PLATE], conf: A}
+  axle_load_max_front: {value: 700, unit: kg, src: [MAN-BODY], conf: A}
+  axle_load_max_rear:  {value: 780, unit: kg, src: [MAN-BODY, VIN-PLATE], conf: A}
+  driver:          {value: 80, unit: kg, src: [EST], conf: C, note: "driver only (track/sim). x = −1250, y = +370 (LHD), z = 450 mm"}
+  driver_position: {value: [-1250, 370, 450], unit: mm, src: [EST], conf: C}
+  cog_height_kerb: {value: 500, unit: mm, src: [EST], conf: D,
+    note: "typical for 1960s/70s compact saloons 480–530 mm; Touring hatch raises it slightly. Candidate for tilt-test measurement"}
+  unsprung_front_corner: {value: 38, unit: kg, src: [EST], conf: C,
+    note: "steel 5.5J 6.7 (GH-p97) + tyre 7.5 + disc 5.5 + caliper 3.5 + hub/strut lower ≈ 9 + ½ arms/links ≈ 6"}
+  unsprung_rear_corner:  {value: 42, unit: kg, src: [EST], conf: C,
+    note: "wheel+tyre 14.2 + 250 mm drum/brake 9 + hub/bearings 5 + trailing arm (½ counted) 9 + ½ halfshaft 3 + spring/damper ½ 2"}
+  # inertias of the SPRUNG mass about its own CoG (estimates; see docs/estimates.md)
+  Ixx_sprung: {value: 300, unit: kgm2, src: [EST], conf: D, note: "roll; k ≈ 0.55 m (≈ 0.41·track)"}
+  Iyy_sprung: {value: 1450, unit: kgm2, src: [EST], conf: D, note: "pitch; ≈ 0.95·Izz"}
+  Izz_sprung: {value: 1550, unit: kgm2, src: [EST], conf: D, note: "yaw; dynamic index ≈ 1 → m·a·b"}
+
+# -------------------------------------------------------------------------------------
+aero:
+  Cd:            {value: 0.44, unit: "-", src: [MK87, EST], conf: C, note: "sources 0.397 (BMW) … 0.471 (Daimler-Benz tunnel); Touring rear end assumed similar"}
+  frontal_area:  {value: 1.80, unit: m2, src: [EST], conf: C, note: "0.82 · width 1590 · (height 1380 − clearance 0)"}
+  Cl_front:      {value: 0.0, unit: "-", src: [EST], conf: D, note: "lift ignored for now (period cars lift ~0.1–0.2 total)"}
+  Cl_rear:       {value: 0.0, unit: "-", src: [EST], conf: D}
+  air_density:   {value: 1.20, unit: kg/m3, src: [EST], conf: B, note: "20 °C sea level"}
+
+# -------------------------------------------------------------------------------------
+wheels:
+  # Wheel on the car: BMW 2002 turbo / E21 steel 5.5J x 13 ET18
+  rim_diameter:  {value: 13, unit: in, src: [TD], conf: A}
+  rim_width:     {value: 5.5, unit: in, src: [TD], conf: A}
+  offset_ET:     {value: 18, unit: mm, src: [TD, TSUP], conf: A}
+  mass_rim:      {value: 6.7, unit: kg, src: [GH-p97], conf: B, note: "5.5J steel"}
+  tyre_size:     {value: "185/70 R13", src: [TD], conf: A, note: "Uniroyal Rain Expert 3"}
+  tyre_model:    {value: generic_185_70R13.yaml, src: [EST], conf: D, note: "parameter file in inputs/tyres"}
+  tyre_mass:     {value: 7.5, unit: kg, src: [EST], conf: C}
+  wheel_spin_inertia: {value: 0.85, unit: kgm2, src: [EST], conf: C, note: "rim+tyre ≈ 14.2 kg, k ≈ 0.245 m; + brake disc/drum added in brakes"}
+  pressure_front: {value: 1.8, unit: bar, src: [MAN-WT], conf: A, note: "atü; loaded F/R 1.8/2.0 (165SR13)"}
+  pressure_rear:  {value: 2.0, unit: bar, src: [MAN-WT], conf: A}
+
+# -------------------------------------------------------------------------------------
+suspension:
+  front:   # MacPherson strut, transverse lower arm + tension strut, ZF-Gemmer box steering
+    track_ref:   {value: 1342, unit: mm, src: [MAN-FA], conf: A, note: "with 5J rims (1330 with 4.5J); hub face y derived with ET29 → see hub_face_y"}
+    hub_face_y:  {value: 700, unit: mm, src: [MAN-FA, FAQ, EST], conf: C, note: "track_ref/2 + ET29 of the 5J reference rim. Wheel centre y = hub_face_y − ET"}
+    loaded_radius: {value: 280, unit: mm, src: [EST], conf: C, note: "185/70R13 unloaded 294.6 mm; static deflection ≈ 15 mm"}
+    hardpoints:   # left side, mm, normal load
+      strut_top:          {value: [-32, 498, 750], unit: mm, src: [MAN-FRAME, EST-FRAME], conf: C, note: "y A-grade (996/2). x,z from caster/SAI + assumed z"}
+      lower_ball_joint:   {value: [10, 590, 150], unit: mm, src: [EST-FRAME], conf: C, note: "placed so axis gives caster 4°, SAI 8.5° (MAN-ST)"}
+      lca_inner:          {value: [0, 330, 185], unit: mm, src: [EST], conf: D, note: "transverse arm pivot on front crossmember; crossmember bolts at y=340.5 (MAN-FRAME 681/2)"}
+      tension_strut_body: {value: [330, 400, 200], unit: mm, src: [EST], conf: D, note: "front end of tension (drag) strut, rubber mount on body/crossmember bracket. VERIFY direction & position"}
+      tension_strut_arm:  {value: [10, 520, 160], unit: mm, src: [EST], conf: D}
+      tie_rod_outer:      {value: [-135, 610, 175], unit: mm, src: [EST], conf: D, note: "steering arms point rearward (box/centre link behind axle)"}
+      tie_rod_inner:      {value: [-150, 330, 209], unit: mm, src: [EST], conf: C, note: "track rod to centre link / idler. z solved for zero bump steer at design height (assumes factory did so); y=330 gives least curvature (toe change < 0.06° over ±60 mm)"}
+      arb_link_lower:     {value: [60, 470, 165], unit: mm, src: [EST], conf: D, note: "ARB drop link on lower arm / tension strut"}
+    rc_spacer:        {value: 0, unit: mm, src: [EST], conf: A, note: "roll-centre spacer between strut foot and lower ball joint: moves ball joint (and tie rod outer if bump-steer spacer) down"}
+    bump_steer_spacer: {value: 0, unit: mm, src: [EST], conf: A, note: "moves tie_rod_outer down"}
+    strut_camber_offset: {value: 0, unit: deg, src: [EST], conf: A, note: "built-in spindle camber of modified struts (e.g. Alpina −1.5°)"}
+    camber_plate_offset: {value: [0, 0], unit: mm, src: [EST], conf: A, note: "strut top shift [x, y] by camber/caster plates"}
+    spring_seat_lower_from_top: {value: 300, unit: mm, src: [EST], conf: D, note: "distance along strut axis from top mount to lower spring perch"}
+    strut:
+      stroke:            {value: 176, unit: mm, src: [MAN-FA], conf: A}
+      installed_length:  {value: 570, unit: mm, src: [MAN-FA], conf: A}
+      bump_stop_length:  {value: 85, unit: mm, src: [MAN-FA], conf: A}
+    wheel_travel_bump:    {value: 87.5, unit: mm, src: [MAN-FA], conf: A}
+    wheel_travel_rebound: {value: 93, unit: mm, src: [MAN-FA], conf: A}
+    alignment:
+      camber: {value: 0.5, unit: deg, src: [MAN-ST], conf: A, note: "+0°30' ±30'; unladen +1°30' (FAQ)"}
+      toe:    {value: 1.5, unit: mm, src: [MAN-ST], conf: A, note: "total toe-in, +1/−0.5 mm (= 0°14')"}
+      caster: {value: 4.0, unit: deg, src: [MAN-ST], conf: A}
+      kingpin_inclination: {value: 8.5, unit: deg, src: [MAN-ST], conf: A}
+      toe_out_20deg: {value: 1.0, unit: deg, src: [MAN-ST], conf: A, note: "difference at 20° inner lock (Ackermann check)"}
+    spring:   # standard front (fitted springs not recorded in TD → assume standard)
+      wire_d:      {value: 11.8, unit: mm, src: [MAN-FA, SPR], conf: A}
+      outer_D:     {value: 126.8, unit: mm, src: [MAN-FA, SPR], conf: A}
+      free_length: {value: 337.2, unit: mm, src: [MAN-FA], conf: A, note: "SPR sheet1 says 332.2"}
+      coils_total: {value: 7.5, unit: "-", src: [SPR], conf: B}
+      coils_active: {value: 6.5, unit: "-", src: [EST], conf: C, note: "total − 1 (closed ends). Rate: 17.0 N/mm if all 7.44 active … 21 N/mm if 6 active"}
+      rate:        {value: 19.5, unit: N/mm, src: [EST], conf: C, note: "G d^4/(8 D^3 n) with G=79.3 GPa, D=115 mm, n=6.5. Replaces coil calc in code if 'rate' given"}
+      load_class:  {value: [2649, 2923], unit: N, src: [MAN-FA], conf: A, note: "colour class range at (unknown) test length; ≈ static load → consistency check"}
+    arb:
+      diameter:    {value: 16, unit: mm, src: [TD], conf: B, note: "TD says 16; manual/GH say 15 (2002); bushings bought = 15 → MEASURE"}
+      lever_length: {value: 190, unit: mm, src: [EST], conf: D}
+      active_length: {value: 820, unit: mm, src: [EST], conf: D, note: "torsion length between body bushings"}
+      efficiency:  {value: 0.85, unit: "-", src: [EST], conf: C, note: "rubber bushings / link compliance, fraction of rigid-bar stiffness"}
+    damper:
+      model: {value: "Koni Sport 86-1519 (yellow), adjustable rebound", src: [TD, KONI-CAT], conf: A}
+      curve: {value: koni_86_1519_generic, src: [EST], conf: D, note: "see dampers section"}
+      setting: {value: 0.5, unit: "-", src: [EST], conf: D, note: "0 = softest, 1 = hardest of ~5 half-turns (rebound only)"}
+
+  rear:   # semi-trailing arm on V-shaped axle carrier (subframe), coil springs, separate dampers
+    track_ref:   {value: 1342, unit: mm, src: [MAN-RA], conf: A, note: "with 5J rims"}
+    hub_face_y:  {value: 700, unit: mm, src: [MAN-RA, EST], conf: C}
+    loaded_radius: {value: 280, unit: mm, src: [EST], conf: C}
+    hardpoints:
+      subframe_mount:  {value: [-2116, 582, 205], unit: mm, src: [MAN-FRAME, MAN-RA39], conf: B, note: "x: A→B 2336.3 from front mount x=220; y: 1164/2; z ≈ datum"}
+      tsa_pivot_outer: {value: [-2176, 530, 230], unit: mm, src: [EST-FRAME], conf: C, note: "outer arm bracket on carrier"}
+      tsa_pivot_inner: {value: [-2311, 159, 230], unit: mm, src: [EST-FRAME], conf: C,
+        note: "pivot axis length 395.2 (MAN-RA39 'A'), sweep 20° from transverse (drawing + WEB-02FAQ); dihedral 0° assumed. Checked: gives 2.1° camber change for the 37 mm unladen→normal ride drop vs 2.25° factory"}
+      spring_lower:    {value: [-2529, 460, 200], unit: mm, src: [MAN-FRAME, EST], conf: C, note: "x A-grade (B + 412.5); y ≈ 460 scaled from the plan view of MAN-FRAME (spring tower); z estimate. Gives MR ≈ 0.87 (wheel-rate ratio 0.76 ≈ forum '0.75')"}
+      spring_upper:    {value: [-2529, 460, 440], unit: mm, src: [MAN-FRAME, EST], conf: C}
+      damper_lower:    {value: [-2458, 480, 190], unit: mm, src: [MAN-FRAME, EST], conf: C, note: "damper axis leans top-forward in the MAN-FRAME side view (axis at B+292 / B+309 over ~125 mm height ≈ 7.7°), extended down to the arm; slight outboard lean assumed. Spring axis is separate, ~105-120 mm behind (B+412.5)"}
+      damper_upper:    {value: [-2408, 460, 560], unit: mm, src: [MAN-FRAME, EST], conf: C, note: "x: B + 292 (upper end of the inclined axis); y from plan view; z estimate"}
+      arb_link_arm:    {value: [-2380, 450, 190], unit: mm, src: [EST], conf: D}
+      diff_rear_mount: {value: [-2591, 121.5, 265], unit: mm, src: [MAN-FRAME], conf: B, note: "x: B + 475, y: 243/2, z: datum + 64"}
+    damper_len_max: {value: 564, unit: mm, src: [MAN-RA], conf: A, note: "Boge reference damper; Koni 80-1868 length not published"}
+    damper_len_min: {value: 369, unit: mm, src: [MAN-RA], conf: A}
+    bump_rubber_length: {value: 80, unit: mm, src: [MAN-RA], conf: A}
+    wheel_travel_bump:    {value: 74, unit: mm, src: [MAN-RA], conf: A}
+    wheel_travel_rebound: {value: 97, unit: mm, src: [MAN-RA], conf: A}
+    alignment:
+      camber: {value: -2.0, unit: deg, src: [MAN-ST, MAN-RA], conf: A, note: "−2° ±30'; unladen +0°15' (FAQ)"}
+      toe:    {value: 1.5, unit: mm, src: [MAN-ST], conf: A, note: "total toe-in ±1.5"}
+    arm_section: {value: open, src: [TD, MAN-RA], conf: A, note: "open U-section (box on ti/tii) → lower torsional stiffness, matters for compliance later"}
+    spring:   # TD: "genuine BMW HD, 13.2 mm wire (VALIDATE)"
+      wire_d:      {value: 13.2, unit: mm, src: [SPR, TD], conf: B}
+      outer_D:     {value: 128.4, unit: mm, src: [SPR], conf: C, note: "ID 102 + 2·13.2"}
+      free_length: {value: 324.2, unit: mm, src: [SPR], conf: B}
+      coils_total: {value: 7.33, unit: "-", src: [SPR], conf: C}
+      coils_active: {value: 6.3, unit: "-", src: [EST], conf: C}
+      rate:        {value: 32.0, unit: N/mm, src: [EST], conf: C, note: "coil formula, D=115.2, n=6.3. Forum calc (all coils active) = 27.3. Std Touring rear (12.3 wire, red class 3227–3335 N) would be ~22–25"}
+      upper_pad:   {value: 28, unit: mm, src: [MAN-RA, FAQ], conf: A, note: "1-dot rubber ring prescribed for Touring"}
+    arb:
+      diameter:    {value: 15, unit: mm, src: [TD], conf: B, note: "TD says 15; manual/GH 16 (1802 and up); bushings bought = 16 → MEASURE. Touring: softer mounts"}
+      lever_length: {value: 170, unit: mm, src: [EST], conf: D}
+      active_length: {value: 900, unit: mm, src: [EST], conf: D}
+      efficiency:  {value: 0.75, unit: "-", src: [FAQ, EST], conf: C, note: "Touring rear bar has softer mounts (FAQ)"}
+    damper:
+      model: {value: "Koni Sport 80-1868 (yellow), adjustable rebound", src: [TD, KONI-CAT], conf: A}
+      curve: {value: koni_80_1868_generic, src: [EST], conf: D}
+      setting: {value: 0.5, unit: "-", src: [EST], conf: D}
+
+# -------------------------------------------------------------------------------------
+# Damper force-velocity curves (damper shaft velocity, + = extension/rebound).
+# No published Koni curves for 86-1519 / 80-1868 → generic digressive sport curves,
+# 'soft' and 'hard' ends of the rebound adjustment; compression fixed. Replace with dyno data.
+dampers:
+  koni_86_1519_generic:
+    velocity:         {value: [0, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0], unit: m/s, src: [EST], conf: D}
+    rebound_soft:     {value: [0, 450, 750, 1050, 1250, 1550, 2200], unit: N, src: [EST], conf: D}
+    rebound_hard:     {value: [0, 900, 1400, 1900, 2200, 2700, 3700], unit: N, src: [EST], conf: D}
+    compression:      {value: [0, 250, 400, 560, 680, 850, 1250], unit: N, src: [EST], conf: D}
+  koni_80_1868_generic:
+    velocity:         {value: [0, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0], unit: m/s, src: [EST], conf: D}
+    rebound_soft:     {value: [0, 400, 650, 950, 1150, 1450, 2050], unit: N, src: [EST], conf: D}
+    rebound_hard:     {value: [0, 800, 1250, 1700, 2000, 2450, 3400], unit: N, src: [EST], conf: D}
+    compression:      {value: [0, 230, 370, 520, 630, 800, 1150], unit: N, src: [EST], conf: D}
+
+# -------------------------------------------------------------------------------------
+steering:
+  box:            {value: "ZF-Gemmer worm and roller", src: [MAN-ST], conf: A}
+  overall_ratio:  {value: 17.57, unit: "-", src: [MAN-ST], conf: A, note: "box 15.5:1"}
+  lock_inner:     {value: 41, unit: deg, src: [MAN-ST], conf: A}
+  lock_outer:     {value: 34, unit: deg, src: [MAN-ST], conf: A}
+  turning_circle: {value: 10.40, unit: m, src: [MAN-ST], conf: A}
+
+# -------------------------------------------------------------------------------------
+engine:
+  type:          {value: "M10B20, E21 head, single Solex, CR 8.3", src: [TD], conf: A}
+  displacement:  {value: 1990, unit: cc, src: [GH-p14], conf: A}
+  # Full-load torque curve: 2002 (100 PS) from GH p.13, digitized. Same engine family as fitted.
+  torque_rpm:    {value: [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6400], unit: rpm, src: [GH-p13], conf: B}
+  torque:        {value: [13.4, 14.7, 15.4, 15.75, 15.95, 15.8, 15.3, 14.8, 14.0, 13.1, 11.8, 10.6], unit: kgfm, src: [GH-p13, EST], conf: C,
+    note: "±0.3 mkp read-off; 6400 rpm point extrapolated. CR 8.3 vs 8.5 → ~1% less, ignored"}
+  rev_limit:     {value: 6400, unit: rpm, src: [MAN-ENG], conf: A, note: "max permissible; continuous 6000; cut-out 6600"}
+  idle:          {value: 900, unit: rpm, src: [FAQ], conf: A}
+  inertia:       {value: 0.15, unit: kgm2, src: [EST], conf: D, note: "crank + flywheel + clutch (215 mm)"}
+  friction_torque_closed_throttle: {value: [-12, -20, -30], unit: Nm, src: [EST], conf: D, note: "at 1000/3500/6000 rpm (engine braking)"}
+
+driveline:
+  gearbox:       {value: "Getrag 242 4-speed", src: [TD], conf: A}
+  gear_ratios:   {value: [3.764, 2.02, 1.32, 1.00], unit: "-", src: [FAQ, TD], conf: A}
+  final_drive:   {value: 3.64, unit: "-", src: [TD, MAN-RA], conf: A, note: "11:40"}
+  diff_type:     {value: clutch_lsd, src: [TD], conf: A, note: "ZF multi-plate, 40% lock. Plates may be worn (TD to-do)"}
+  lsd_lock_ratio: {value: 40, unit: "%", src: [TD, MAN-RA, GH], conf: A, note: "torque bias = (1+0.4)/(1−0.4) = 2.33 (assumed same on power and coast)"}
+  lsd_preload:   {value: 40, unit: Nm, src: [LSD-DOC], conf: C, note: "breakaway torque at wheels; healthy 34–41, worn less"}
+  efficiency:    {value: 0.90, unit: "-", src: [EST], conf: C, note: "gearbox (direct 4th: 0.95 overall) + hypoid; per-gear values later"}
+  clutch_diameter: {value: 215, unit: mm, src: [TD], conf: A}
+  driveline_inertia_at_wheels: {value: 0.10, unit: kgm2, src: [EST], conf: D, note: "propshaft+diff+halfshafts, per axle, excl. engine"}
+
+# -------------------------------------------------------------------------------------
+brakes:
+  front_disc_diameter:  {value: 256, unit: mm, src: [TD], conf: A}
+  front_disc_thickness: {value: 12.9, unit: mm, src: [TD], conf: A}
+  front_piston_d:       {value: 40, unit: mm, src: [TD, MAN-BR], conf: B, note: "ATE 4-piston (2 per side)"}
+  front_pistons_per_side: {value: 2, unit: "-", src: [MAN-BR], conf: B}
+  front_effective_radius: {value: 105, unit: mm, src: [EST], conf: C}
+  front_pad_mu:         {value: 0.38, unit: "-", src: [EST], conf: C}
+  rear_drum_diameter:   {value: 250, unit: mm, src: [TD], conf: A}
+  rear_wheel_cyl_d:     {value: 19, unit: mm, src: [TD], conf: A}
+  rear_brake_factor:    {value: 2.0, unit: "-", src: [EST], conf: C, note: "simplex leading/trailing drum, BF·μ incl."}
+  master_cyl_d:         {value: 23.81, unit: mm, src: [TD], conf: A}
+  booster_ratio:        {value: 2.5, unit: "-", src: [EST], conf: D, note: "ATE T51"}
+  pressure_regulator:   {value: none_found, src: [TD], conf: C, note: "TD: rear pressure regulator not found yet"}
+  rotor_inertia_front:  {value: 0.06, unit: kgm2, src: [EST], conf: C}
+  drum_inertia_rear:    {value: 0.10, unit: kgm2, src: [EST], conf: C}

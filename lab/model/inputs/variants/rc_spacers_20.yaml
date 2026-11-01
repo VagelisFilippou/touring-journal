@@ -1,0 +1,6 @@
+meta:
+  name: rc_spacers_20
+  description: "Front roll-centre spacers 20 mm + matching bump-steer spacers (typical for lowered MacPherson)"
+set:
+  suspension.front.rc_spacer:         {value: 20, unit: mm, src: [EST], conf: A}
+  suspension.front.bump_steer_spacer: {value: 20, unit: mm, src: [EST], conf: A}
