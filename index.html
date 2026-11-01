@@ -72,18 +72,26 @@ footer{padding-block:30px;color:var(--muted);font:500 .8rem/1.5 var(--mono);bord
 @media (prefers-reduced-motion:no-preference){.card{transition:transform .15s ease}.card:hover{transform:translateY(-2px)}}
 [hidden]{display:none!important}
 article,.notes,.entry{scroll-margin-top:calc(60px + env(safe-area-inset-top,0px))}
-/* Menu: one sticky row of tabs; each tab is a section of the same page, switched by the URL #hash */
+/* Menu: a sticky bar with one drop-down button; each entry is a section of the same page, switched by the URL #hash */
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
-nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:4px;overflow-x:auto;
-  border-bottom:1px solid var(--line);margin-bottom:8px;scrollbar-width:none}
-nav.tabs a{flex:none;font:600 .8rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;
-  padding:16px 12px 13px;border-bottom:3px solid transparent}
-nav.tabs a:hover{color:var(--fg)}
-nav.tabs a[aria-current="page"]{color:var(--fg);border-bottom-color:var(--accent)}
-nav.tabs a:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-nav.tabs .n{color:var(--accent-ink);margin-left:6px}
-nav.tabs a.lang{margin-left:auto;color:var(--accent-ink);text-transform:none;letter-spacing:.02em}
-nav.tabs a.lab{color:var(--accent-ink)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid var(--line);margin-bottom:8px;padding-block:8px}
+nav.tabs .menu{position:relative}
+nav.tabs .menu-btn{display:flex;align-items:center;gap:10px;font:600 .8rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--fg);background:var(--bg);border:1px solid var(--line);border-bottom:3px solid var(--accent);border-radius:4px;padding:11px 14px 9px;cursor:pointer}
+nav.tabs .menu-btn:hover{border-color:var(--accent)}
+nav.tabs .menu-btn .chev{color:var(--accent-ink);transition:transform .15s ease}
+nav.tabs .menu-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+nav.tabs .menu-list{position:absolute;left:0;top:calc(100% + 6px);min-width:15rem;max-width:calc(100vw - 32px);display:grid;
+  background:var(--bg);border:1px solid var(--line);border-radius:4px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:6px}
+nav.tabs .menu-list a{display:flex;justify-content:space-between;gap:16px;font:600 .8rem/1 var(--mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);text-decoration:none;padding:13px 12px;border-left:3px solid transparent;border-radius:2px}
+nav.tabs .menu-list a:hover{color:var(--fg);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+nav.tabs .menu-list a[aria-current="page"]{color:var(--fg);border-left-color:var(--accent)}
+nav.tabs .menu-list a.lab{color:var(--accent-ink);border-top:1px solid var(--line);margin-top:4px;padding-top:15px}
+nav.tabs a:focus-visible,nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+nav.tabs .n{color:var(--accent-ink)}
+nav.tabs a.lang{margin-left:auto;font:600 .8rem/1 var(--mono);color:var(--accent-ink);letter-spacing:.02em;text-decoration:none;padding:12px 4px}
 .tab-intro{max-width:66ch;color:var(--muted);margin:26px 0 0}
 .story ul,.notes ul,.entry ul{margin:0;padding-left:1.2em;display:grid;gap:6px;max-width:66ch}
 .story li::marker,.notes li::marker,.entry li::marker{color:var(--accent)}
@@ -165,7 +173,7 @@ th{background:var(--surface);font-weight:700}
 <header class="mast"><div class="mast-text"><span class="kicker">BMW 1600 Touring · chassis 3300994</span><h1>Workshop Journal</h1>
 <p class="lede">What I restore, rebuild and fix on my 1600 Touring and its parts, with the photos from the bench.</p>
 <div class="meta">Published version · built 1 Nov 2026</div></div><a class="logo" href="#car" aria-label="The car"><img src="logo.png" alt="BMW 1600 Touring, side view" width="900" height="315"></a></header>
-<nav class="tabs" aria-label="Sections"><a href="#projects">Projects<span class="n">8</span></a><a href="#maintenance">Maintenance<span class="n">25</span></a><a href="#notes">Tech notes<span class="n">19</span></a><a href="#car">The car</a><a class="lab" href="lab/index.html">Suspension lab</a><a class="lang" href="el.html" hreflang="el" lang="el">Ελληνικά</a></nav>
+<nav class="tabs" aria-label="Sections"><div class="menu"><button type="button" class="menu-btn" aria-expanded="false" aria-controls="menu-list"><span class="cur">Projects</span><span class="chev" aria-hidden="true">▾</span></button><div class="menu-list" id="menu-list" hidden><a href="#projects">Projects<span class="n">8</span></a><a href="#maintenance">Maintenance<span class="n">25</span></a><a href="#notes">Tech notes<span class="n">19</span></a><a href="#car">The car</a><a class="lab" href="lab/index.html">Suspension lab</a></div></div><a class="lang" href="el.html" hreflang="el" lang="el">Ελληνικά</a></nav>
 <section class="tab" id="tab-projects" aria-label="Projects"><section class="overview" aria-label="Projects"><a class="card" href="#2026-10-vented-brake-upgrade"><img src="img/2026-10-vented-brake-upgrade/20261022_232558.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Brakes</span><span class="date">27 Sep – 25 Oct 2026</span></div><h3 class="card-title">Vented front brakes for the Touring, Alpina style (part 1)</h3><p>A used vented-brake package rebuilt on the kitchen table: ti struts, E21 323i hubs with oversize studs, restored ATE 2002 Turbo calipers, Neue Klasse shields cut to scoop air like Alpina did, and NOS BALO discs.</p></div></a><a class="card" href="#2026-04-25-voula-hillclimb"><img src="img/2026-04-25-voula-hillclimb/IMG-80cb3cb9e733a1cfafe95fe94d98b40c-V.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Events</span><span class="date">25 Apr 2026</span></div><h3 class="card-title">Voula hillclimb 2026, third place on twin Webers</h3><p>Start number 6 in the Regularity class of the Voula hillclimb above Athens, one day after the twin-Weber conversion was finished. Two runs, one each for my father and me, and third place in our category.</p></div></a><a class="card" href="#2026-04-twin-weber-conversion"><img src="img/2026-04-twin-weber-conversion/20260424_153910.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Engine</span><span class="date">8–24 Apr 2026</span></div><h3 class="card-title">Twin Webers in two weeks, just in time for Voula</h3><p>An untouched pair of Weber 40 DCOE 76/77 from my father's warehouse, rebuilt and fitted under an Alpina air box in two weeks, finished the day before the Voula hillclimb.</p></div></a><a class="card" href="#2026-02-ferrero-steering-wheel"><img src="img/2026-02-ferrero-steering-wheel/20260304_105737.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Interior</span><span class="date">6 Feb – 15 Mar 2026</span></div><h3 class="card-title">Bringing a Ferrero wooden steering wheel back to life</h3><p>Grey, brittle and coming apart at the old glue joint. Re-glued with epoxy and twine, sanded to 1000 grit, many coats of tung oil and a German wood wax.</p></div></a><a class="card" href="#2026-02-ti-air-filter-housing"><img src="img/2026-02-ti-air-filter-housing/20260301_193711.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Engine</span><span class="date">28 Jan – 1 Mar 2026</span></div><h3 class="card-title">Refreshing a 2002ti air filter housing for twin carbs</h3><p>A solid but tired 2002ti air box: etch primer and satin black, Alpina-style open filters instead of the snorkels, and new mounting hardware made to carry them properly.</p></div></a><a class="card" href="#2026-02-wooden-gear-knob"><img src="img/2026-02-wooden-gear-knob/20260218_225022.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Interior</span><span class="date">19 Jan – 19 Feb 2026</span></div><h3 class="card-title">A quick one — the wooden gear knob</h3><p>A faded wooden BMW gear knob, sanded and refinished to match the steering wheel.</p></div></a><a class="card" href="#2026-02-silver-dollar-cluster"><img src="img/2026-02-silver-dollar-cluster/20260215_134944.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Interior</span><span class="date">5 Jan – 17 Mar 2026</span></div><h3 class="card-title">Restoring a 2002 ti "silver dollar" cluster, 220 km/h</h3><p>A complete, original but very tired early ti cluster brought back to the factory look: old black paint off the hubs, Alclad rings, satin housing, about 20 hours of work.</p></div></a><a class="card" href="#2025-12-hella-192-fog-lights"><img src="img/2025-12-hella-192-fog-lights/20251228_180946.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Electrical</span><span class="date">22–30 Dec 2025</span></div><h3 class="card-title">Hella 192 fog lights, with wiring I made myself</h3><p>A pair of period Hella 192 fog lamps, a harness made from scratch with its own relay and fuse, and an original green fog-light switch in the dash to run them.</p></div></a></section><article id="2026-10-vented-brake-upgrade"><header><div class="meta"><span class="tag">Brakes</span></div><h2>Vented front brakes for the Touring, Alpina style (part 1)</h2><p class="summary">A used vented-brake package rebuilt on the kitchen table: ti struts, E21 323i hubs with oversize studs, restored ATE 2002 Turbo calipers, Neue Klasse shields cut to scoop air like Alpina did, and NOS BALO discs.</p><div class="facts"><div><b>When</b><span class="date">27 Sep – 25 Oct 2026</span></div><div><b>Photos</b><span class="drums"><span class="d">2</span><span class="d">9</span></span></div><div><b>Ledger SKU</b>P-0192, P-0202, P-0214, P-0198…P-0201, P-0147, P-0025, P-0205, P-0166</div></div></header><div class="story"><h3>The idea</h3>
 <p>The 02 came with solid front discs; only the 2002 Turbo had vented ones. My Touring has the stock ti/tii front end (solid discs) and 250 mm rear drums with 19 mm wheel cylinders, without a brake pressure regulator. My father once tried 22 mm wheel cylinders with a regulator and did not like the brake balance, so he went back to 19 mm without one.</p>
 <p>I weighed three ways to get vented front discs: E21 323i hubs with vented discs; Alpina-style discs (reproductions exist, but the ti/tii calipers then need spacers); or Turbo hubs and discs. The E21 323i route made the most sense financially: new Turbo hubs alone are expensive, the Alpina parts are expensive because so few are made, while E21 hubs, discs (ATE, Zimmermann) and parts are still easy to find. I also decided against aluminium hubs: they are dimensioned like the steel ones, so I did not trust them to be engineered for aluminium. When I discussed it on the bmw2002faq forum in August 2025, several members said they run the same combination.</p>
@@ -361,8 +369,22 @@ th{background:var(--surface);font-weight:700}
     var h=decodeURIComponent(location.hash.slice(1)), el=h?document.getElementById(h):null;
     var tab=document.getElementById('tab-'+h)||(el&&el.closest?el.closest('section.tab'):null)||tabs[0];
     tabs.forEach(function(t){t.hidden=(t!==tab)});
-    links.forEach(function(a){a.setAttribute('aria-current','tab-'+a.getAttribute('href').slice(1)===tab.id?'page':'false')});
+    links.forEach(function(a){
+      var on='tab-'+a.getAttribute('href').slice(1)===tab.id;
+      a.setAttribute('aria-current',on?'page':'false');
+      if(on&&cur) cur.textContent=a.firstChild.textContent;
+    });
+    close();
     if(el) el.scrollIntoView(); else window.scrollTo(0,0);
+  }
+  // drop-down menu: the button shows the open section; the list closes on a choice, an outside click or Escape
+  var btn=document.querySelector('nav.tabs .menu-btn'), list=document.getElementById('menu-list'), cur=btn&&btn.querySelector('.cur');
+  function close(){ if(btn){ list.hidden=true; btn.setAttribute('aria-expanded','false'); } }
+  if(btn){
+    btn.addEventListener('click',function(e){ e.stopPropagation(); var open=list.hidden; list.hidden=!open; btn.setAttribute('aria-expanded',open?'true':'false'); });
+    list.addEventListener('click',function(e){ if(e.target.closest('a')) close(); });
+    document.addEventListener('click',function(e){ if(!e.target.closest('nav.tabs .menu')) close(); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!list.hidden){ close(); btn.focus(); } });
   }
   window.addEventListener('hashchange',show); show();
   var sw=document.querySelector('nav.tabs a.lang');  // keep the open tab/section when switching language
