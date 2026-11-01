@@ -72,18 +72,26 @@ footer{padding-block:30px;color:var(--muted);font:500 .8rem/1.5 var(--mono);bord
 @media (prefers-reduced-motion:no-preference){.card{transition:transform .15s ease}.card:hover{transform:translateY(-2px)}}
 [hidden]{display:none!important}
 article,.notes,.entry{scroll-margin-top:calc(60px + env(safe-area-inset-top,0px))}
-/* Menu: one sticky row of tabs; each tab is a section of the same page, switched by the URL #hash */
+/* Menu: a sticky bar with one drop-down button; each entry is a section of the same page, switched by the URL #hash */
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
-nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:4px;overflow-x:auto;
-  border-bottom:1px solid var(--line);margin-bottom:8px;scrollbar-width:none}
-nav.tabs a{flex:none;font:600 .8rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;
-  padding:16px 12px 13px;border-bottom:3px solid transparent}
-nav.tabs a:hover{color:var(--fg)}
-nav.tabs a[aria-current="page"]{color:var(--fg);border-bottom-color:var(--accent)}
-nav.tabs a:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-nav.tabs .n{color:var(--accent-ink);margin-left:6px}
-nav.tabs a.lang{margin-left:auto;color:var(--accent-ink);text-transform:none;letter-spacing:.02em}
-nav.tabs a.lab{color:var(--accent-ink)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid var(--line);margin-bottom:8px;padding-block:8px}
+nav.tabs .menu{position:relative}
+nav.tabs .menu-btn{display:flex;align-items:center;gap:10px;font:600 .8rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--fg);background:var(--bg);border:1px solid var(--line);border-bottom:3px solid var(--accent);border-radius:4px;padding:11px 14px 9px;cursor:pointer}
+nav.tabs .menu-btn:hover{border-color:var(--accent)}
+nav.tabs .menu-btn .chev{color:var(--accent-ink);transition:transform .15s ease}
+nav.tabs .menu-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+nav.tabs .menu-list{position:absolute;left:0;top:calc(100% + 6px);min-width:15rem;max-width:calc(100vw - 32px);display:grid;
+  background:var(--bg);border:1px solid var(--line);border-radius:4px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:6px}
+nav.tabs .menu-list a{display:flex;justify-content:space-between;gap:16px;font:600 .8rem/1 var(--mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);text-decoration:none;padding:13px 12px;border-left:3px solid transparent;border-radius:2px}
+nav.tabs .menu-list a:hover{color:var(--fg);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+nav.tabs .menu-list a[aria-current="page"]{color:var(--fg);border-left-color:var(--accent)}
+nav.tabs .menu-list a.lab{color:var(--accent-ink);border-top:1px solid var(--line);margin-top:4px;padding-top:15px}
+nav.tabs a:focus-visible,nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+nav.tabs .n{color:var(--accent-ink)}
+nav.tabs a.lang{margin-left:auto;font:600 .8rem/1 var(--mono);color:var(--accent-ink);letter-spacing:.02em;text-decoration:none;padding:12px 4px}
 .tab-intro{max-width:66ch;color:var(--muted);margin:26px 0 0}
 .story ul,.notes ul,.entry ul{margin:0;padding-left:1.2em;display:grid;gap:6px;max-width:66ch}
 .story li::marker,.notes li::marker,.entry li::marker{color:var(--accent)}
@@ -165,7 +173,7 @@ th{background:var(--surface);font-weight:700}
 <header class="mast"><div class="mast-text"><span class="kicker">BMW 1600 Touring · αρ. πλαισίου 3300994</span><h1>Ημερολόγιο Συνεργείου</h1>
 <p class="lede">Ό,τι αποκαθιστώ, ξαναφτιάχνω και επισκευάζω στο 1600 Touring μου και στα ανταλλακτικά του, με τις φωτογραφίες από τον πάγκο.</p>
 <div class="meta">Δημοσιευμένη έκδοση · ενημέρωση 1 Νοε 2026</div></div><a class="logo" href="#car" aria-label="Το αυτοκίνητο"><img src="logo.png" alt="BMW 1600 Touring, πλαϊνή όψη" width="900" height="315"></a></header>
-<nav class="tabs" aria-label="Ενότητες"><a href="#projects">Έργα<span class="n">8</span></a><a href="#maintenance">Συντήρηση<span class="n">25</span></a><a href="#notes">Τεχνικές σημειώσεις<span class="n">19</span></a><a href="#car">Το αυτοκίνητο</a><a class="lab" href="lab/index.html">Εργαστήριο ανάρτησης</a><a class="lang" href="index.html" hreflang="en" lang="en">English</a></nav>
+<nav class="tabs" aria-label="Ενότητες"><div class="menu"><button type="button" class="menu-btn" aria-expanded="false" aria-controls="menu-list"><span class="cur">Έργα</span><span class="chev" aria-hidden="true">▾</span></button><div class="menu-list" id="menu-list" hidden><a href="#projects">Έργα<span class="n">8</span></a><a href="#maintenance">Συντήρηση<span class="n">25</span></a><a href="#notes">Τεχνικές σημειώσεις<span class="n">19</span></a><a href="#car">Το αυτοκίνητο</a><a class="lab" href="lab/index.html">Εργαστήριο ανάρτησης</a></div></div><a class="lang" href="index.html" hreflang="en" lang="en">English</a></nav>
 <section class="tab" id="tab-projects" aria-label="Έργα"><section class="overview" aria-label="Projects"><a class="card" href="#2026-10-vented-brake-upgrade"><img src="img/2026-10-vented-brake-upgrade/20261022_232558.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Φρένα</span><span class="date">27 Σεπ – 25 Οκτ 2026</span></div><h3 class="card-title">Αεριζόμενα εμπρός φρένα για το Touring, σε στιλ Alpina (μέρος 1)</h3><p>Ένα μεταχειρισμένο πακέτο αεριζόμενων φρένων, ξαναφτιαγμένο στο τραπέζι της κουζίνας: γόνατα ti, μουαγιέ E21 323i με μεγαλύτερα (oversize) μπουζόνια, αποκαταστημένες δαγκάνες ATE 2002 Turbo, ασπίδες Neue Klasse κομμένες ώστε να «μαζεύουν» αέρα όπως έκανε η Alpina, και δισκόπλακες BALO NOS.</p></div></a><a class="card" href="#2026-04-25-voula-hillclimb"><img src="img/2026-04-25-voula-hillclimb/IMG-80cb3cb9e733a1cfafe95fe94d98b40c-V.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Εκδηλώσεις</span><span class="date">25 Απρ 2026</span></div><h3 class="card-title">Ανάβαση Βούλας 2026, τρίτη θέση με διπλά Weber</h3><p>Αριθμός συμμετοχής 6 στην κατηγορία Ομαλότητας της Ανάβασης Βούλας, μία μέρα αφότου τελείωσε η μετατροπή σε διπλά Weber. Δύο ανεβάσεις, μία ο πατέρας μου και μία εγώ, και τρίτη θέση στην κατηγορία μας.</p></div></a><a class="card" href="#2026-04-twin-weber-conversion"><img src="img/2026-04-twin-weber-conversion/20260424_153910.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Κινητήρας</span><span class="date">8–24 Απρ 2026</span></div><h3 class="card-title">Διπλά Weber σε δύο εβδομάδες, ακριβώς στην ώρα για τη Βούλα</h3><p>Ένα ανέγγιχτο ζευγάρι Weber 40 DCOE 76/77 από την αποθήκη του πατέρα μου, ξαναφτιαγμένο και τοποθετημένο κάτω από ένα φιλτροκούτι Alpina μέσα σε δύο εβδομάδες. Τελείωσε την παραμονή της Ανάβασης Βούλας.</p></div></a><a class="card" href="#2026-02-ferrero-steering-wheel"><img src="img/2026-02-ferrero-steering-wheel/20260304_105737.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Εσωτερικό</span><span class="date">6 Φεβ – 15 Μαρ 2026</span></div><h3 class="card-title">Ξαναζωντανεύοντας ένα ξύλινο τιμόνι Ferrero</h3><p>Γκρίζο, εύθρυπτο και να ανοίγει στην παλιά ένωση της κόλλας. Ξανακολλημένο με εποξική και σπάγκο, τριμμένο ως το 1000, πολλές στρώσεις tung oil και ένα γερμανικό κερί ξύλου.</p></div></a><a class="card" href="#2026-02-ti-air-filter-housing"><img src="img/2026-02-ti-air-filter-housing/20260301_193711.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Κινητήρας</span><span class="date">28 Ιαν – 1 Μαρ 2026</span></div><h3 class="card-title">Φρεσκάρισμα φιλτροκουτιού 2002ti για διπλά καρμπιρατέρ</h3><p>Ένα γερό αλλά κουρασμένο φιλτροκούτι 2002ti: αστάρι πρόσφυσης και σατινέ μαύρο, ανοιχτά φίλτρα τύπου Alpina αντί για τις «προβοσκίδες», και καινούργια στηρίγματα φτιαγμένα για να τα κρατάνε σωστά.</p></div></a><a class="card" href="#2026-02-wooden-gear-knob"><img src="img/2026-02-wooden-gear-knob/20260218_225022.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Εσωτερικό</span><span class="date">19 Ιαν – 19 Φεβ 2026</span></div><h3 class="card-title">Ένα γρήγορο — το ξύλινο πόμολο λεβιέ ταχυτήτων</h3><p>Ένα ξεθωριασμένο ξύλινο πόμολο λεβιέ ταχυτήτων BMW, τριμμένο και ξαναφινιρισμένο για να ταιριάζει με το τιμόνι.</p></div></a><a class="card" href="#2026-02-silver-dollar-cluster"><img src="img/2026-02-silver-dollar-cluster/20260215_134944.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Εσωτερικό</span><span class="date">5 Ιαν – 17 Μαρ 2026</span></div><h3 class="card-title">Αποκατάσταση καντράν 2002 ti «silver dollar», 220 km/h</h3><p>Ένα πλήρες, γνήσιο αλλά πολύ κουρασμένο πρώιμο καντράν ti επιστρέφει στην εργοστασιακή του όψη: παλιά μαύρη μπογιά έξω από τα κέντρα, δαχτυλίδια με Alclad, σατινέ κέλυφος, περίπου 20 ώρες δουλειά.</p></div></a><a class="card" href="#2025-12-hella-192-fog-lights"><img src="img/2025-12-hella-192-fog-lights/20251228_180946.jpg" alt="" loading="lazy"><div class="card-body"><div class="meta"><span class="tag">Ηλεκτρικά</span><span class="date">22–30 Δεκ 2025</span></div><h3 class="card-title">Προβολάκια ομίχλης Hella 192, με καλωδίωση που έφτιαξα μόνος μου</h3><p>Ένα ζευγάρι προβολάκια ομίχλης Hella 192 της εποχής, μια πλεξούδα φτιαγμένη από το μηδέν με δικό της ρελέ και ασφάλεια, και ένας γνήσιος πράσινος διακόπτης ομίχλης στο ταμπλό για να τα ανάβει.</p></div></a></section><article id="2026-10-vented-brake-upgrade"><header><div class="meta"><span class="tag">Φρένα</span></div><h2>Αεριζόμενα εμπρός φρένα για το Touring, σε στιλ Alpina (μέρος 1)</h2><p class="summary">Ένα μεταχειρισμένο πακέτο αεριζόμενων φρένων, ξαναφτιαγμένο στο τραπέζι της κουζίνας: γόνατα ti, μουαγιέ E21 323i με μεγαλύτερα (oversize) μπουζόνια, αποκαταστημένες δαγκάνες ATE 2002 Turbo, ασπίδες Neue Klasse κομμένες ώστε να «μαζεύουν» αέρα όπως έκανε η Alpina, και δισκόπλακες BALO NOS.</p><div class="facts"><div><b>Πότε</b><span class="date">27 Σεπ – 25 Οκτ 2026</span></div><div><b>Φωτογραφίες</b><span class="drums"><span class="d">2</span><span class="d">9</span></span></div><div><b>Κωδικός</b>P-0192, P-0202, P-0214, P-0198…P-0201, P-0147, P-0025, P-0205, P-0166</div></div></header><div class="story"><h3>Η ιδέα</h3>
 <p>Τα 02 βγήκαν με συμπαγείς εμπρός δισκόπλακες· αεριζόμενες είχε μόνο το 2002 Turbo. Το Touring μου έχει το εργοστασιακό εμπρός σύστημα ti/tii (συμπαγείς δισκόπλακες) και πίσω ταμπούρα 250 mm με κυλινδράκια 19 mm, χωρίς ρυθμιστή πίεσης φρένων. Ο πατέρας μου είχε δοκιμάσει κάποτε κυλινδράκια 22 mm με ρυθμιστή και δεν του άρεσε η κατανομή του φρεναρίσματος, οπότε γύρισε στα 19 mm χωρίς ρυθμιστή.</p>
 <p>Ζύγισα τρεις τρόπους για αεριζόμενες εμπρός δισκόπλακες: μουαγιέ E21 323i με αεριζόμενες δισκόπλακες· δισκόπλακες τύπου Alpina (υπάρχουν αντίγραφα, αλλά τότε οι δαγκάνες ti/tii θέλουν αποστάτες)· ή μουαγιέ και δισκόπλακες Turbo. Ο δρόμος του E21 323i ήταν ο πιο λογικός οικονομικά: μόνο τα καινούργια μουαγιέ Turbo είναι ακριβά, τα κομμάτια Alpina είναι ακριβά γιατί φτιάχνονται ελάχιστα, ενώ μουαγιέ, δισκόπλακες (ATE, Zimmermann) και ανταλλακτικά E21 βρίσκονται ακόμα εύκολα. Αποφάσισα επίσης να μη βάλω αλουμινένια μουαγιέ: έχουν τις ίδιες διαστάσεις με τα ατσάλινα, οπότε δεν τα εμπιστεύτηκα ότι είναι σχεδιασμένα για αλουμίνιο. Όταν το συζήτησα στο φόρουμ bmw2002faq τον Αύγουστο του 2025, αρκετά μέλη είπαν ότι έχουν τον ίδιο συνδυασμό.</p>
@@ -361,8 +369,22 @@ th{background:var(--surface);font-weight:700}
     var h=decodeURIComponent(location.hash.slice(1)), el=h?document.getElementById(h):null;
     var tab=document.getElementById('tab-'+h)||(el&&el.closest?el.closest('section.tab'):null)||tabs[0];
     tabs.forEach(function(t){t.hidden=(t!==tab)});
-    links.forEach(function(a){a.setAttribute('aria-current','tab-'+a.getAttribute('href').slice(1)===tab.id?'page':'false')});
+    links.forEach(function(a){
+      var on='tab-'+a.getAttribute('href').slice(1)===tab.id;
+      a.setAttribute('aria-current',on?'page':'false');
+      if(on&&cur) cur.textContent=a.firstChild.textContent;
+    });
+    close();
     if(el) el.scrollIntoView(); else window.scrollTo(0,0);
+  }
+  // drop-down menu: the button shows the open section; the list closes on a choice, an outside click or Escape
+  var btn=document.querySelector('nav.tabs .menu-btn'), list=document.getElementById('menu-list'), cur=btn&&btn.querySelector('.cur');
+  function close(){ if(btn){ list.hidden=true; btn.setAttribute('aria-expanded','false'); } }
+  if(btn){
+    btn.addEventListener('click',function(e){ e.stopPropagation(); var open=list.hidden; list.hidden=!open; btn.setAttribute('aria-expanded',open?'true':'false'); });
+    list.addEventListener('click',function(e){ if(e.target.closest('a')) close(); });
+    document.addEventListener('click',function(e){ if(!e.target.closest('nav.tabs .menu')) close(); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!list.hidden){ close(); btn.focus(); } });
   }
   window.addEventListener('hashchange',show); show();
   var sw=document.querySelector('nav.tabs a.lang');  // keep the open tab/section when switching language
