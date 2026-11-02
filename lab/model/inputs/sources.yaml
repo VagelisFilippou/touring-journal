@@ -24,6 +24,7 @@ sources:
   GH-p10:     {kind: book, ref: "GH p.10: power required vs speed (Typenreihe 114), 152 PS at 200 km/h"}
   GH-p13:     {kind: book, ref: "GH p.13: 2002 torque/power curves (digitized ±0.3 mkp)"}
   GH-p14:     {kind: book, ref: "GH p.14: engine data table"}
+  GH-p75:     {kind: book, ref: "GH p.75: tuning gains 2.0 l (twin 40 carbs 115-125 PS; + head, 300° cam, 40 DCOE 135-145 PS …)"}
   GH-p82:     {kind: book, ref: "GH p.82: final drives, Vmax"}
   GH-p97:     {kind: book, ref: "GH p.97: rim weights and track increase per rim width"}
   GH-p99:     {kind: book, ref: "GH p.99: anti-roll bar sizes"}

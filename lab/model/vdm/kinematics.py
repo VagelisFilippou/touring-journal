@@ -225,13 +225,16 @@ class SemiTrailingArm:
         hp = r_.hardpoints
         self.r = r_.loaded_radius
         self.ground_z = -p.chassis.ride_height_change_rear
-        self.o = np.asarray(hp.tsa_pivot_outer)
+        d = np.asarray(r_.subframe_offset)                 # carrier moved vs body: arms move rigidly with it
+        self.d = d
+        self.o = np.asarray(hp.tsa_pivot_outer) + d
         self.k = hp.tsa_pivot_inner - hp.tsa_pivot_outer
         x_wc = -p.chassis.wheelbase
-        self.H = np.array([x_wc, r_.hub_face_y, self.r])
+        self.H = np.array([x_wc, r_.hub_face_y, self.r]) + d
         self.a0 = spin_axis(r_.alignment.camber, toe_to_rad(r_.alignment.toe))
         self.ET = p.wheels.offset_ET
-        self.pts = dict(spring_lower=hp.spring_lower, damper_lower=hp.damper_lower, arb=hp.arb_link_arm)
+        self.pts = dict(spring_lower=hp.spring_lower + d, damper_lower=hp.damper_lower + d, arb=hp.arb_link_arm + d)
+        self.sub_mount = hp.subframe_mount + d
         self.spring_upper, self.damper_upper = hp.spring_upper, hp.damper_upper
         self.wc_static_z = self.r + self.ground_z
 
@@ -253,7 +256,9 @@ class SemiTrailingArm:
     def points(self, wc_z) -> dict:
         r = self.solve(wc_z)
         R, X, a, wc = self._at(r["theta"])
-        return dict(r, pivot_outer=self.o, pivot_inner=self.o + self.k, hub=X(self.H),
+        diff_out = np.array([wc[0] + self.d[0] / 2, 0.13, 0.285 + self.d[2] / 2])   # diff tilts: front on carrier, rear on body
+        return dict(r, pivot_outer=self.o, pivot_inner=self.o + self.k, hub=X(self.H), diff_out=diff_out,
+                    subframe_mount=self.sub_mount,
                     spring_lower=X(self.pts["spring_lower"]), spring_upper=self.spring_upper,
                     damper_lower=X(self.pts["damper_lower"]), damper_upper=self.damper_upper)
 

@@ -180,7 +180,7 @@ def rear_corner(P, arb_d):
     dl, du = P["damper_lower"], P["damper_upper"]
     pr += [tube(dl, dl + 0.58 * (du - dl), 0.024, "damper", "damper"), tube(dl + 0.58 * (du - dl), du, 0.008, "rod", "damper"),
            sphere(dl, 0.018, "rubber"), disk(du, du - dl, 0.04, 0.03, "rubber", "damper")]
-    diff_out = np.array([wc[0], np.sign(wc[1]) * 0.13, 0.285])
+    diff_out = P["diff_out"] * [1, np.sign(wc[1]), 1] if "diff_out" in P else np.array([wc[0], np.sign(wc[1]) * 0.13, 0.285])
     pr += [tube(diff_out, hub_in, 0.014, "shaft", "halfshaft"), sphere(diff_out, 0.04, "shaft"), sphere(hub_in, 0.04, "shaft")]
     if arb_d > 0:
         pr.append(tube(P["arb"], P["arb"] + np.r_[0, 0, 0.08], 0.006, "arb", "ARB"))
@@ -189,7 +189,9 @@ def rear_corner(P, arb_d):
 
 def rear_axle_common(L, R, arb_d, sub_mount):
     xw = L["wc"][0]
-    pr = [box([xw, 0, 0.285], [0.15, 0.12, 0.12], "diff", "diff"),
+    sub_mount = L.get("subframe_mount", sub_mount)
+    zd = L["diff_out"][2] if "diff_out" in L else 0.285
+    pr = [box([xw, 0, zd], [0.15, 0.12, 0.12], "diff", "diff"),
           tube([xw + 0.12, 0, 0.30], [xw + 0.36, 0, 0.32], 0.06, "diff", "diff"),
           disk([xw - 0.15, 0, 0.285], [1, 0, 0], 0.12, 0.02, "diff", "diff")]
     centre = 0.5 * (L["pivot_inner"] + R["pivot_inner"]) + np.r_[-0.05, 0, -0.01]

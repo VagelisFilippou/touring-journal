@@ -1,0 +1,5 @@
+meta:
+  name: final_drive_411
+  description: "Final drive 4.11 (LSD type unchanged)"
+set:
+  driveline.final_drive: {value: 4.11, unit: "-", src: [GH-p82], conf: A}

@@ -7,6 +7,7 @@
 <title>Suspension lab</title>
 <link rel="icon" type="image/png" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <style>
 :root{--bg:#eef0ee;--surface:#fff;--fg:#1b1f22;--muted:#5a6268;--line:#d4d9d6;--accent:#c25a16;--accent-ink:#9a4510;--ref:#9aa3a8;
@@ -51,6 +52,16 @@ th{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 .note{font-size:.85rem;color:var(--muted);max-width:90ch}
 .legend{font:500 .72rem var(--mono);color:var(--muted)}
 .legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin:0 4px 0 10px}
+.vars select{width:100%;font:500 .85rem var(--body);margin:2px 0 6px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px}
+.vars .g{font:700 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+#map{height:430px;border-radius:4px;border:1px solid var(--line)}
+.roadbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
+.roadbar select,.roadbar input{font:500 .85rem var(--body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px}
+.roadbar button{margin:0}
+#road-summary{font:500 .85rem/1.6 var(--mono);margin:8px 0}
+#road-summary b{color:var(--accent-ink);font-size:1.05rem}
+.road-charts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:900px){.road-charts{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -80,17 +91,32 @@ we use at home, right in your browser. The first load takes a while (it download
     <div class="panel" style="margin-top:12px"><h2>Kinematics vs wheel travel</h2>
       <div class="legend"><i style="background:var(--ref)"></i>baseline (the car as it is)<i style="background:var(--accent)"></i>front, current<i style="background:#2c5d8a"></i>rear, current</div>
       <div class="charts" id="charts"></div></div>
-    <div class="panel" style="margin-top:12px"><h2>Results — steady-state cornering, ride</h2>
+    <div class="panel" style="margin-top:12px"><h2>Results — performance, cornering, ride</h2>
       <table id="results"></table>
       <p class="note">Steady state, driver on board, no aero. Many inputs are still estimates from books, drawings and
       forums (the car is in Greece and hasn't been measured yet), so compare setups with each other rather than trusting
       the absolute numbers. Part shapes are indicative; the suspension pickup points drive the kinematics.</p></div>
+    <div class="panel" style="margin-top:12px"><h2>Road — time and speed on a real road</h2>
+      <div class="roadbar">
+        <select id="road-preset"><option value="">Choose a road…</option></select>
+        <button id="road-draw">Draw your own route</button>
+        <button id="road-go">Route &amp; simulate</button>
+        <label style="font-size:.85rem">start speed <input id="road-v0" type="number" value="0" min="0" max="150" step="10" style="width:5em"> km/h</label>
+      </div>
+      <div id="road-status" class="note">Pick the Voula hillclimb, or draw a route: click the start, any via points and the finish on the map.</div>
+      <div id="map"></div>
+      <div id="road-summary"></div>
+      <div class="road-charts" id="road-charts"></div>
+      <p class="note">Theoretical limit for the selected setup: full throttle, ideal gear changes, the cornering limit
+      from the model in every bend and the braking limit before it; dry road, no driver margin. Roads come from
+      OpenStreetMap (routing by OSRM), heights from Open-Meteo (Copernicus DEM, 90 m); the elevation is smoothed.</p></div>
   </main>
 </div>
 </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script>
-const MANIFEST = {"files": ["vdm/__init__.py", "vdm/params.py", "vdm/kinematics.py", "vdm/steady_state.py", "vdm/tyre.py", "vdm/drawing.py", "vdm/web.py", "inputs/baseline.yaml", "inputs/sources.yaml", "inputs/variants/wheels_FPS_5J_ET26.yaml", "inputs/variants/lowered_WN_springs.yaml", "inputs/variants/rc_spacers_20.yaml", "inputs/variants/alpina_bilstein_struts.yaml", "inputs/variants/arb_ST_22_19.yaml", "inputs/tyres/generic_185_70R13.yaml"], "stamp": "53b2c2c731"};
+const MANIFEST = {"files": ["vdm/__init__.py", "vdm/params.py", "vdm/kinematics.py", "vdm/steady_state.py", "vdm/tyre.py", "vdm/drawing.py", "vdm/powertrain.py", "vdm/lapsim.py", "vdm/roads.py", "vdm/web.py", "inputs/baseline.yaml", "inputs/sources.yaml", "inputs/variants/lowered_WN_springs.yaml", "inputs/variants/rc_spacers_20.yaml", "inputs/variants/alpina_bilstein_struts.yaml", "inputs/variants/arb_ST_22_19.yaml", "inputs/variants/rear_subframe_raised.yaml", "inputs/variants/wheels_FPS_5J_ET26.yaml", "inputs/variants/engine_single_solex.yaml", "inputs/variants/engine_dcoe_300cam.yaml", "inputs/variants/gearbox_235_5.yaml", "inputs/variants/gearbox_245_2_close.yaml", "inputs/variants/gearbox_245_4_od.yaml", "inputs/variants/final_drive_345.yaml", "inputs/variants/final_drive_390.yaml", "inputs/variants/final_drive_411.yaml", "inputs/tyres/generic_185_70R13.yaml", "inputs/roads/voula_hillclimb.yaml"], "stamp": "55233c86fe"};
 const $ = id => document.getElementById(id);
 let py, web, variants = [], sliders = [], values = {}, busy = false, pending = null;
 const status = t => $("status").textContent = t;
@@ -108,13 +134,20 @@ async function boot(){
     }
     py.runPython("import sys; sys.path.insert(0,'/model')\nfrom vdm import web");
     web = py.globals.get("web");
-    JSON.parse(web.variants()).forEach(v=>{
-      const l=document.createElement("label");
-      l.innerHTML=`<input type="checkbox" value="${v.file}"> ${v.label}`;
-      l.querySelector("input").addEventListener("change", onVariants); $("variants").appendChild(l);
+    const VV=JSON.parse(web.variants()), groups={};
+    VV.items.forEach(v=>{ (groups[v.group]=groups[v.group]||[]).push(v); });
+    Object.entries(groups).forEach(([g,items])=>{
+      const h=document.createElement("div"); h.className="g"; h.textContent=g; $("variants").appendChild(h);
+      if(g==="Chassis"){ items.forEach(v=>{ const l=document.createElement("label");
+          l.innerHTML=`<input type="checkbox" value="${v.file}"> ${v.label}`;
+          l.querySelector("input").addEventListener("change", onVariants); $("variants").appendChild(l); }); }
+      else { const sel=document.createElement("select");
+          sel.innerHTML=`<option value="">${VV.as_is[g]||"as is"}</option>`+items.map(v=>`<option value="${v.file}">${v.label}</option>`).join("");
+          sel.addEventListener("change", onVariants); $("variants").appendChild(sel); }
     });
     buildSliders("[]");
     $("controls").hidden=false; $("main").hidden=false;
+    initMap();
     ["heave","roll","steer"].forEach(id=>$(id).addEventListener("input",()=>{updPoseLabels(); schedule(false)}));
     $("reset").addEventListener("click",()=>{buildSliders(JSON.stringify(variants)); schedule(true)});
     await run(true);
@@ -135,7 +168,8 @@ function buildSliders(vjson){
   });
 }
 function onVariants(){
-  variants=[...document.querySelectorAll("#variants input:checked")].map(i=>i.value);
+  variants=[...document.querySelectorAll("#variants input:checked")].map(i=>i.value)
+    .concat([...document.querySelectorAll("#variants select")].map(s=>s.value).filter(Boolean));
   buildSliders(JSON.stringify(variants)); schedule(true);
 }
 const fmt = v => Math.abs(v)>=100 ? v.toFixed(0) : Math.abs(v)>=10 ? v.toFixed(1) : v.toFixed(2).replace(/\.?0+$/,"") || "0";
@@ -151,6 +185,7 @@ async function run(full){
       const t0=performance.now();
       const r=JSON.parse(web.compute(JSON.stringify(variants), JSON.stringify(values)));
       drawResults(r); drawCharts(r);
+      if(roadPoints) simRoad(false);
       status(`Computed in ${((performance.now()-t0)/1000).toFixed(1)} s · ${r.n_overrides} change(s) vs the selected setup · limit: ${r.limit}`);
     }
     const p=JSON.parse(web.pose(+$("heave").value, +$("roll").value, +$("steer").value));
@@ -178,15 +213,15 @@ function drawView(axle, v, mirror){
   $("r-"+axle).innerHTML=v.read.map(r=>`${r.side==="L"?"Left":"Right"}: travel ${r.travel>0?"+":""}${r.travel} mm · camber ${r.camber>0?"+":""}${r.camber}° · toe ${r.toe>0?"+":""}${r.toe}′`).join("<br>");
 }
 
-function chart(title, xs, series){
+function chart(title, xs, series, xticks){
   const W=320,H=190,P={l:42,r:8,t:8,b:26};
   const all=series.flatMap(s=>s.y), lo=Math.min(...all), hi=Math.max(...all), pad=(hi-lo)*0.08||1;
   const y0=lo-pad, y1=hi+pad, x0=xs[0], x1=xs[xs.length-1];
   const sx=x=>P.l+(x-x0)/(x1-x0)*(W-P.l-P.r), sy=y=>H-P.b-(y-y0)/(y1-y0)*(H-P.t-P.b);
   let s=`<svg viewBox="0 0 ${W} ${H}" font-family="JetBrains Mono,monospace" font-size="9" fill="currentColor">`;
   for(let i=0;i<=4;i++){ const yv=y0+(y1-y0)*i/4, yy=sy(yv); s+=`<line x1="${P.l}" x2="${W-P.r}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${P.l-4}" y="${yy+3}" text-anchor="end" fill="var(--muted)">${yv.toFixed(Math.abs(y1-y0)<5?2:0)}</text>`; }
-  [-80,-40,0,40,80].forEach(xv=>{ s+=`<text x="${sx(xv)}" y="${H-10}" text-anchor="middle" fill="var(--muted)">${xv}</text>`; });
-  s+=`<line x1="${sx(0)}" x2="${sx(0)}" y1="${P.t}" y2="${H-P.b}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
+  (xticks||[-80,-40,0,40,80]).forEach(xv=>{ s+=`<text x="${sx(xv)}" y="${H-10}" text-anchor="middle" fill="var(--muted)">${xv}</text>`; });
+  if(!xticks) s+=`<line x1="${sx(0)}" x2="${sx(0)}" y1="${P.t}" y2="${H-P.b}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
   series.forEach(se=>{ s+=`<polyline fill="none" stroke="${se.c}" stroke-width="${se.w||2}" points="${xs.map((x,i)=>sx(x).toFixed(1)+","+sy(se.y[i]).toFixed(1)).join(" ")}"/>`; });
   return `<div class="chart"><div class="t">${title}</div>${s}</svg></div>`;
 }
@@ -202,10 +237,75 @@ function drawCharts(r){
 function drawResults(r){
   let h="<tr><th>Quantity</th><th>Car as is</th><th>This setup</th><th>Change</th></tr>";
   Object.keys(r.results).forEach(k=>{
-    const a=r.baseline[k], b=r.results[k], d=b-a, n=Math.abs(a)>=100?0:Math.abs(a)>=10?1:2;
-    h+=`<tr><td>${k}</td><td>${a.toFixed(n)}</td><td>${b.toFixed(n)}</td><td class="${Math.abs(d)<1e-6?"":(d>0?"pos":"neg")}">${Math.abs(d)<1e-6?"–":(d>0?"+":"")+d.toFixed(n)}</td></tr>`;
+    const a=r.baseline[k], b=r.results[k], d=b-a, n=Math.abs(a)>=100?0:Math.abs(a)>=10?1:2, bt=(r.better||{})[k]||0;
+    const cls = Math.abs(d)<1e-6||!bt ? "" : (d*bt>0?"pos":"neg");
+    h+=`<tr><td>${k}</td><td>${a.toFixed(n)}</td><td>${b.toFixed(n)}</td><td class="${cls}">${Math.abs(d)<1e-6?"–":(d>0?"+":"")+d.toFixed(n)}</td></tr>`;
   });
   $("results").innerHTML=h;
+}
+// ------------------------------------------------------------------ road
+let map=null, routeLayer, wpLayer, waypoints=[], drawing=false, roadPoints=null;
+function initMap(){
+  map=L.map("map").setView([37.858,23.789],14);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+  routeLayer=L.layerGroup().addTo(map); wpLayer=L.layerGroup().addTo(map);
+  map.on("click",e=>{ if(!drawing) return; waypoints.push([e.latlng.lat,e.latlng.lng]);
+    L.circleMarker(e.latlng,{radius:6,color:"#c25a16",weight:3}).addTo(wpLayer);
+    $("road-status").textContent=`${waypoints.length} point(s). Click more, then “Route & simulate”.`; });
+  JSON.parse(web.road_presets()).forEach(p=>{ const o=document.createElement("option"); o.value=p.name; o.textContent=p.label; $("road-preset").appendChild(o); });
+  $("road-preset").addEventListener("change", loadPreset);
+  $("road-draw").addEventListener("click",()=>{ drawing=true; waypoints=[]; wpLayer.clearLayers(); routeLayer.clearLayers();
+    $("road-preset").value=""; $("road-status").textContent="Click the start, any via points and the finish on the map."; });
+  $("road-go").addEventListener("click",()=>routeAndSim().catch(e=>{ $("road-status").textContent="Routing failed: "+e.message; }));
+  $("road-v0").addEventListener("change",()=>simRoad(false));
+}
+function loadPreset(){ const n=$("road-preset").value; if(!n) return; drawing=false; wpLayer.clearLayers();
+  roadPoints=web.road_points(n); $("road-status").textContent=""; simRoad(true); }
+function densify(ll, step){
+  const out=[ll[0]], R=6371000;
+  for(let i=1;i<ll.length;i++){ const [a0,b0]=ll[i-1],[a1,b1]=ll[i];
+    const dx=(b1-b0)*Math.PI/180*R*Math.cos(a0*Math.PI/180), dy=(a1-a0)*Math.PI/180*R, n=Math.max(1,Math.floor(Math.hypot(dx,dy)/step));
+    for(let k=1;k<=n;k++) out.push([a0+(a1-a0)*k/n, b0+(b1-b0)*k/n]); }
+  return out;
+}
+async function routeAndSim(){
+  if(waypoints.length<2){ $("road-status").textContent="Click at least a start and a finish on the map first."; return; }
+  drawing=false; $("road-status").textContent="Routing on OpenStreetMap…";
+  const coords=waypoints.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";");
+  const r=await (await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&continue_straight=true`)).json();
+  if(r.code!=="Ok") throw new Error(r.message||r.code);
+  let ll=densify(r.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]), 10);
+  if(ll.length>2500) throw new Error("route longer than 25 km; pick a shorter one");
+  $("road-status").textContent="Getting elevations…";
+  const ele=[];
+  for(let i=0;i<ll.length;i+=100){ const ch=ll.slice(i,i+100);
+    const d=await (await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${ch.map(p=>p[0].toFixed(5)).join(",")}&longitude=${ch.map(p=>p[1].toFixed(5)).join(",")}`)).json();
+    if(!d.elevation) throw new Error("elevation service: "+(d.reason||"no data")); ele.push(...d.elevation); }
+  roadPoints=JSON.stringify(ll.map((p,i)=>[p[0],p[1],ele[i]]));
+  wpLayer.clearLayers(); $("road-status").textContent=""; simRoad(true);
+}
+function speedColor(t){ const c=[[49,54,149],[69,117,180],[116,173,209],[171,217,233],[254,224,144],[253,174,97],[244,109,67],[215,48,39],[165,0,38]];
+  const x=Math.max(0,Math.min(1,t))*(c.length-1), i=Math.floor(x), f=x-i, a=c[i], b=c[Math.min(i+1,c.length-1)];
+  return `rgb(${a.map((v,k)=>Math.round(v+(b[k]-v)*f)).join(",")})`; }
+function simRoad(fit){
+  if(!roadPoints||!web) return;
+  let r; try{ r=JSON.parse(web.road_sim(roadPoints, +$("road-v0").value||0)); }catch(e){ $("road-status").textContent="Simulation failed: "+e.message.split("\n").slice(-2)[0]; return; }
+  routeLayer.clearLayers();
+  const vmax=Math.max(...r.v), vmin=Math.min(...r.v);
+  for(let i=0;i<r.latlon.length-1;i++) L.polyline([r.latlon[i],r.latlon[i+1]],{color:speedColor((r.v[i]-vmin)/Math.max(vmax-vmin,1)),weight:6,opacity:.95}).addTo(routeLayer);
+  L.circleMarker(r.latlon[0],{radius:7,color:"#1b7f3b",fillOpacity:1}).bindTooltip("start").addTo(routeLayer);
+  L.circleMarker(r.latlon[r.latlon.length-1],{radius:7,color:"#111",fillOpacity:1}).bindTooltip("finish").addTo(routeLayer);
+  if(fit) map.fitBounds(L.latLngBounds(r.latlon),{padding:[20,20]});
+  const d=r.time-r.time_ref;
+  $("road-summary").innerHTML=`<b>${r.time.toFixed(1)} s</b> (car as is ${r.time_ref.toFixed(1)} s, ${d>=0?"+":""}${d.toFixed(1)} s) · ${(r.length/1000).toFixed(2)} km · `+
+    `average ${r.avg.toFixed(1)} km/h · top ${r.vmax.toFixed(0)} km/h · climb ${r.climb>=0?"+":""}${r.climb.toFixed(0)} m · gears used ${r.gears_used.join(", ")} · tightest bend ≈ ${r.min_radius.toFixed(0)} m radius<br>`+
+    `<span class="legend">time limited by: power ${(100*r.share.power).toFixed(0)} % · traction ${(100*r.share.traction).toFixed(0)} % · braking ${(100*r.share.brake).toFixed(0)} % · cornering ${(100*r.share.corner).toFixed(0)} %</span>`;
+  const L_=r.s[r.s.length-1], step=L_>4000?1000:L_>1500?500:250, ticks=[]; for(let x=0;x<=L_;x+=step) ticks.push(x);
+  const emin=Math.min(...r.elev), emax=Math.max(...r.elev), vtop=Math.max(...r.v);
+  const elevScaled=r.elev.map(e=>(e-emin)/Math.max(emax-emin,1)*vtop*0.6);
+  $("road-charts").innerHTML=chart(`Speed [km/h] vs distance [m] (grey: elevation ${emin.toFixed(0)}–${emax.toFixed(0)} m)`, r.s,
+      [{y:elevScaled,c:"var(--ref)",w:2},{y:r.v,c:"var(--accent)"}], ticks)+
+    chart("Gear vs distance [m]", r.s, [{y:r.gear,c:"#2c5d8a"}], ticks);
 }
 boot();
 </script>
