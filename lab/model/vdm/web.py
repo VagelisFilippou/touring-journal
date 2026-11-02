@@ -12,7 +12,7 @@ import re
 
 import numpy as np
 
-from . import drawing as D, kinematics as K, lapsim as LS, params, roads as RD, steady_state as S
+from . import drawing as D, kinematics as K, lapsim as LS, params, powertrain as PT, roads as RD, steady_state as S
 
 G = 9.80665
 MM = 1e3
@@ -198,12 +198,18 @@ def variants():
 
 
 def road_presets():
-    out = []
-    for f in sorted(RD.ROADS.glob("*.yaml")):
-        import yaml
-        meta = yaml.safe_load(f.read_text(encoding="utf-8"))["meta"]
-        out.append({"name": f.stem, "label": meta.get("label", f.stem.replace("_", " ")), "description": meta.get("description", "")})
-    return json.dumps(out)
+    return json.dumps(RD.list_roads())
+
+
+def parse_road(text):
+    """Saved route file (YAML/JSON, our road format or a bare list of [lat, lon, ele]) -> {label, points}."""
+    import yaml
+    d = yaml.safe_load(text)
+    pts = d.get("points") if isinstance(d, dict) else d
+    if not pts or len(pts[0]) < 3:
+        raise ValueError("no [lat, lon, elevation] points found")
+    label = (d.get("meta") or {}).get("label", "") if isinstance(d, dict) else ""
+    return json.dumps({"label": label, "points": [[float(a), float(b), float(c)] for a, b, c, *_ in pts]})
 
 
 def road_points(name):
@@ -224,7 +230,7 @@ def road_sim(points_json, v0_kmh=0.0):
     return json.dumps({"time": r.time, "time_ref": t_ref, "length": tr.length, "vmax": float(r.v.max() * 3.6), "avg": tr.length / r.time * 3.6,
                        "climb": float(tr.elev[-1] - tr.elev[0]), "min_radius": float(1 / max(abs(tr.kappa).max(), 1e-6)),
                        "s": tr.s[idx].round(1).tolist(), "v": (r.v[idx] * 3.6).round(1).tolist(), "elev": tr.elev[idx].round(1).tolist(),
-                       "gear": r.gear[idx].tolist(), "latlon": tr.latlon[idx].round(6).tolist(), "share": share,
+                       "gear": r.gear[idx].tolist(), "rpm": r.rpm[idx].round(0).tolist(), "latlon": tr.latlon[idx].round(6).tolist(), "share": share,
                        "gears_used": sorted(set(int(g) for g in r.gear))})
 
 
@@ -251,8 +257,9 @@ def compute(variants_json, sliders_json):
     m = Model(v, ov, tov)
     _state["model"] = m
     ref = _state["ref"]
+    gearing = {"current": PT.gearing_table(m.p, m.lap.pt), "ref": PT.gearing_table(ref.p, ref.lap.pt)}
     better = {"0–100 km/h [s]": -1, "1 km standing start [s]": -1, "Top speed [km/h]": 1, "Max lateral acceleration [g]": 1}
-    return json.dumps({"results": _results(m), "baseline": _results(ref), "better": better, "limit": m.summary["limit"],
+    return json.dumps({"results": _results(m), "baseline": _results(ref), "better": better, "gearing": gearing, "limit": m.summary["limit"],
                        "curves": _curves(m), "curves_ref": _curves(ref), "n_overrides": len(ov) + len(tov)})
 
 
