@@ -1,0 +1,6 @@
+meta:
+  name: engine_dcoe_300cam
+  description: "Planned build idea: twin 40 DCOE + 300° cam + head work, ~140 PS (GH p.75: 135-145 PS). Shape estimated (torque shifted up)"
+set:
+  engine.torque: {value: [12.0, 13.2, 14.5, 15.6, 16.5, 17.2, 17.6, 17.8, 17.7, 17.3, 16.6, 15.6], unit: kgfm, src: [GH-p75, EST], conf: D}
+  engine.rev_limit: {value: 6800, unit: rpm, src: [GH], conf: C, note: "GH p.82: 1.6 l 6800; tuned 2.0 l with lighter valvetrain"}

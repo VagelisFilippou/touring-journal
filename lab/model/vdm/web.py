@@ -12,7 +12,7 @@ import re
 
 import numpy as np
 
-from . import drawing as D, kinematics as K, params, steady_state as S
+from . import drawing as D, kinematics as K, lapsim as LS, params, roads as RD, steady_state as S
 
 G = 9.80665
 MM = 1e3
@@ -29,6 +29,7 @@ SLIDERS = [
     ("Rear", "Ride height change [mm]", "chassis.ride_height_change_rear", -60, 30, 1),
     ("Rear", "Trailing-arm sweep [deg]", "@rear_sweep", 5, 35, 0.5),
     ("Rear", "Pivot height [mm]", "@rear_pivot_z", 170, 290, 1),
+    ("Rear", "Subframe height offset [mm] (+ up)", "suspension.rear.subframe_offset[2]", -20, 30, 0.5),
     ("Rear", "Static camber [deg]", "suspension.rear.alignment.camber", -4, 0.5, 0.1),
     ("Springs & bars", "Front spring rate [N/mm]", "suspension.front.spring.rate", 10, 80, 0.5),
     ("Springs & bars", "Rear spring rate [N/mm]", "suspension.rear.spring.rate", 10, 100, 0.5),
@@ -41,13 +42,25 @@ SLIDERS = [
     ("Mass & tyres", "Wheel offset ET [mm]", "wheels.offset_ET", -10, 40, 1),
     ("Mass & tyres", "Tyre grip μ [-]", "tyre:lateral.mu_y0", 0.6, 1.6, 0.01),
 ]
-VARIANT_LABELS = {
-    "wheels_FPS_5J_ET26.yaml": "FPS alloys 5J ET26",
-    "lowered_WN_springs.yaml": "Lowering springs (−20 mm)",
-    "rc_spacers_20.yaml": "Roll-centre spacers 20 mm",
-    "alpina_bilstein_struts.yaml": "Alpina struts (−1.5° camber)",
-    "arb_ST_22_19.yaml": "Anti-roll bars 22/19 mm",
+# file -> (group, label). "Chassis" = checkboxes; the other groups are one-of choices (drop-downs)
+VARIANTS = {
+    "lowered_WN_springs.yaml": ("Chassis", "Lowering springs (−20 mm)"),
+    "rc_spacers_20.yaml": ("Chassis", "Roll-centre spacers 20 mm"),
+    "alpina_bilstein_struts.yaml": ("Chassis", "Alpina struts (−1.5° camber)"),
+    "arb_ST_22_19.yaml": ("Chassis", "Anti-roll bars 22/19 mm"),
+    "rear_subframe_raised.yaml": ("Chassis", "Rear subframe mounts flipped (+12.5 mm)"),
+    "wheels_FPS_5J_ET26.yaml": ("Chassis", "FPS alloys 5J ET26"),
+    "engine_single_solex.yaml": ("Engine", "Single Solex, 100 PS (until April 2026)"),
+    "engine_dcoe_300cam.yaml": ("Engine", "Twin DCOE + 300° cam, ~140 PS (idea)"),
+    "gearbox_235_5.yaml": ("Gearbox", "Getrag 235/5 dogleg"),
+    "gearbox_245_2_close.yaml": ("Gearbox", "Getrag 245/2 close ratio"),
+    "gearbox_245_4_od.yaml": ("Gearbox", "Getrag 245/4 overdrive"),
+    "final_drive_345.yaml": ("Final drive", "3.45"),
+    "final_drive_390.yaml": ("Final drive", "3.90"),
+    "final_drive_411.yaml": ("Final drive", "4.11"),
 }
+AS_IS = {"Engine": "Twin Weber 40 DCOE, ~120 PS (as is)", "Gearbox": "Getrag 242 4-speed (as is)", "Final drive": "3.64 (as is)"}
+VARIANT_LABELS = {f: lab for f, (_, lab) in VARIANTS.items()}
 
 _state = {}
 
@@ -128,6 +141,8 @@ class Model:
         self.summary = self.veh.summary()
         self.kin = K.summary(self.p, sweeps=(self.sf, self.sr))
         self.ride = self._ride()
+        self.lap = LS.LapSim(self.p, vehicle=self.veh, tyre_overrides=tov or {})
+        self.acc = self.lap.accel_times(speeds_kmh=(100,), dist_m=(1000,))
 
     def _ride(self):
         out = {}
@@ -157,7 +172,9 @@ def _curves(m):
 
 def _results(m):
     s, k = m.summary, m.kin
-    r = {"Roll gradient [°/g]": s["roll_gradient_deg_per_g"], "Understeer gradient [°/g]": s["understeer_grad_deg_per_g"],
+    r = {"0–100 km/h [s]": m.acc["0-100 km/h [s]"], "1 km standing start [s]": m.acc["1000 m standing [s]"],
+         "Top speed [km/h]": m.acc["top speed [km/h]"],
+         "Roll gradient [°/g]": s["roll_gradient_deg_per_g"], "Understeer gradient [°/g]": s["understeer_grad_deg_per_g"],
          "Max lateral acceleration [g]": s["max_ay_g"], "Front share of roll stiffness [%]": s["roll_stiffness_front_%"],
          "Front share of load transfer [%]": s["LLTD_front_%"]}
     for axle in ("front", "rear"):
@@ -175,8 +192,40 @@ def _results(m):
 
 # ---------------------------------------------------------------- API
 def variants():
-    files = sorted(f.name for f in (params.INPUTS / "variants").glob("*.yaml"))
-    return json.dumps([{"file": f, "label": VARIANT_LABELS.get(f, f[:-5].replace("_", " "))} for f in files if f in VARIANT_LABELS])
+    have = {f.name for f in (params.INPUTS / "variants").glob("*.yaml")}
+    return json.dumps({"items": [{"file": f, "group": g, "label": lab} for f, (g, lab) in VARIANTS.items() if f in have],
+                       "as_is": AS_IS})
+
+
+def road_presets():
+    out = []
+    for f in sorted(RD.ROADS.glob("*.yaml")):
+        import yaml
+        meta = yaml.safe_load(f.read_text(encoding="utf-8"))["meta"]
+        out.append({"name": f.stem, "label": meta.get("label", f.stem.replace("_", " ")), "description": meta.get("description", "")})
+    return json.dumps(out)
+
+
+def road_points(name):
+    import yaml
+    d = yaml.safe_load((RD.ROADS / f"{name}.yaml").read_text(encoding="utf-8"))
+    return json.dumps(d["points"])
+
+
+def road_sim(points_json, v0_kmh=0.0):
+    """Lap-time sim of the current setup on a road given as [[lat, lon, elevation], ...]."""
+    m = _state["model"]
+    tr = RD.build_track(json.loads(points_json))
+    r = m.lap.run(tr, v0=v0_kmh / 3.6)
+    t_ref = _state["ref"].lap.run(tr, v0=v0_kmh / 3.6).time
+    step = max(1, int(round(10.0 / (tr.s[1] - tr.s[0]))))           # ~10 m spacing for the browser
+    idx = np.r_[np.arange(0, len(tr.s), step), len(tr.s) - 1]
+    share = {k: float((r.limit == k).mean()) for k in ("power", "traction", "corner", "brake")}
+    return json.dumps({"time": r.time, "time_ref": t_ref, "length": tr.length, "vmax": float(r.v.max() * 3.6), "avg": tr.length / r.time * 3.6,
+                       "climb": float(tr.elev[-1] - tr.elev[0]), "min_radius": float(1 / max(abs(tr.kappa).max(), 1e-6)),
+                       "s": tr.s[idx].round(1).tolist(), "v": (r.v[idx] * 3.6).round(1).tolist(), "elev": tr.elev[idx].round(1).tolist(),
+                       "gear": r.gear[idx].tolist(), "latlon": tr.latlon[idx].round(6).tolist(), "share": share,
+                       "gears_used": sorted(set(int(g) for g in r.gear))})
 
 
 def setup(variants_json):
@@ -202,7 +251,8 @@ def compute(variants_json, sliders_json):
     m = Model(v, ov, tov)
     _state["model"] = m
     ref = _state["ref"]
-    return json.dumps({"results": _results(m), "baseline": _results(ref), "limit": m.summary["limit"],
+    better = {"0–100 km/h [s]": -1, "1 km standing start [s]": -1, "Top speed [km/h]": 1, "Max lateral acceleration [g]": 1}
+    return json.dumps({"results": _results(m), "baseline": _results(ref), "better": better, "limit": m.summary["limit"],
                        "curves": _curves(m), "curves_ref": _curves(ref), "n_overrides": len(ov) + len(tov)})
 
 

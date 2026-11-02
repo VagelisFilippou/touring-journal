@@ -1,0 +1,6 @@
+meta:
+  name: gearbox_235_5
+  description: "Getrag 235/5 dogleg close-ratio 5-speed (Master_Tracker ID 168/169, on hand)"
+set:
+  driveline.gearbox:     {value: "Getrag 235/5 dogleg", src: [MAN-GB], conf: A}
+  driveline.gear_ratios: {value: [3.368, 2.16, 1.579, 1.241, 1.00], unit: "-", src: [MAN-GB, FAQ], conf: A, note: "4th computed from tooth counts"}

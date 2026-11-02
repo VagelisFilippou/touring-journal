@@ -1,0 +1,5 @@
+meta:
+  name: rear_subframe_raised
+  description: "Rear axle carrier mounts flipped (bushings swapped side to side): carrier ~12.5 mm higher. Usual fix for the extra negative camber of a lowered 02"
+set:
+  suspension.rear.subframe_offset: {value: [0, 0, 12.5], unit: mm, src: [FAQ], conf: C, note: "forum: flipping the mounts raises the carrier 12-13 mm; measure/confirm"}

@@ -1,0 +1,6 @@
+meta:
+  name: gearbox_245_2_close
+  description: "Getrag 245/2 close-ratio 5-speed (E21 sport). Candidate identity of P-0172"
+set:
+  driveline.gearbox:     {value: "Getrag 245/2 close ratio", src: [FAQ], conf: B}
+  driveline.gear_ratios: {value: [3.764, 2.325, 1.612, 1.229, 1.00], unit: "-", src: [FAQ, TD], conf: B}
