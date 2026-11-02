@@ -56,18 +56,38 @@ def densify(latlon, step=10.0):
     return out
 
 
-def fetch_road(name, waypoints, description="", note=""):
-    """Route through waypoints, add elevations, save inputs/roads/<name>.yaml."""
+def route_points(waypoints):
+    """Route through waypoints and add elevations -> [[lat, lon, elevation], ...] (not saved)."""
     pts = densify(osrm_route(waypoints), 10.0)
     ele = elevations(pts)
-    data = {"meta": {"name": name, "description": description, "note": note,
+    return [[round(a, 6), round(b, 6), round(float(e), 1)] for (a, b), e in zip(pts, ele)]
+
+
+def save_road(name, points, label="", description="", note="", waypoints=None):
+    """Write inputs/roads/<name>.yaml (same format as the web lab's 'Save route' download)."""
+    import re
+    name = re.sub(r"[^A-Za-z0-9_-]", "_", name).strip("_") or "route"
+    data = {"meta": {"label": label or name.replace("_", " "), "name": name, "description": description, "note": note,
                      "geometry": "OpenStreetMap via OSRM (router.project-osrm.org), ODbL",
                      "elevation": "Open-Meteo elevation API (Copernicus DEM GLO-90)",
-                     "waypoints": [[round(a, 6), round(b, 6)] for a, b in waypoints]},
-            "points": [[round(a, 6), round(b, 6), round(float(e), 1)] for (a, b), e in zip(pts, ele)]}
+                     "waypoints": [[round(a, 6), round(b, 6)] for a, b in (waypoints or [])]},
+            "points": [[round(float(a), 6), round(float(b), 6), round(float(e), 1)] for a, b, e in points]}
     ROADS.mkdir(exist_ok=True)
     (ROADS / f"{name}.yaml").write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=200), encoding="utf-8")
-    return data
+    return name
+
+
+def list_roads():
+    out = []
+    for f in sorted(ROADS.glob("*.yaml")):
+        meta = yaml.safe_load(f.read_text(encoding="utf-8")).get("meta", {})
+        out.append({"name": f.stem, "label": meta.get("label", f.stem.replace("_", " ")), "description": meta.get("description", "")})
+    return out
+
+
+def fetch_road(name, waypoints, description="", note="", label=""):
+    """Route through waypoints, add elevations, save inputs/roads/<name>.yaml."""
+    return save_road(name, route_points(waypoints), label=label, description=description, note=note, waypoints=waypoints)
 
 
 # ---------------------------------------------------------------- track

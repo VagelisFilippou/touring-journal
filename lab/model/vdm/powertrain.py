@@ -80,3 +80,21 @@ class Powertrain:
         surplus = np.array([self.drive_force(v)[0] - self.resistance(v, m, 0.0) for v in vs])
         i = np.where(surplus > 0)[0]
         return float(vs[i[-1]]) if len(i) else 0.0
+
+
+def gearing_table(p, pt: Powertrain | None = None) -> dict:
+    """Gear ratios, overall ratios, km/h per 1000 rpm and speed at the rev limit, plus the engine curve."""
+    pt = pt or Powertrain(p)
+    rows = []
+    for g, ratio in enumerate(pt.gears):
+        ov = ratio * pt.fd
+        kmh_1000 = 1000 * 2 * np.pi / 60 / ov * pt.r * 3.6
+        rows.append({"gear": g + 1, "ratio": float(ratio), "overall": float(ov), "kmh_per_1000": float(kmh_1000),
+                     "v_at_limit": float(kmh_1000 * pt.w_max * 60 / (2 * np.pi) / 1000)})
+    rpm = pt.w_curve * 60 / (2 * np.pi)
+    lf = p.leaf("engine.torque")
+    return {"gearbox": str(p.driveline.gearbox), "final_drive": float(pt.fd), "rows": rows,
+            "rev_limit": float(pt.w_max * 60 / (2 * np.pi)), "tyre_circumference_m": float(2 * np.pi * pt.r),
+            "engine": str(p.engine.type), "rpm": rpm.round(0).tolist(), "torque_Nm": pt.T_curve.round(1).tolist(),
+            "power_PS": (pt.T_curve * pt.w_curve / 735.5).round(1).tolist(),
+            "torque_conf": lf.get("conf"), "torque_note": lf.get("note", "")}
