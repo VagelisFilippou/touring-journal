@@ -1,4 +1,6 @@
 meta:
+  group: "Chassis"
+  label: "Roll-centre spacers 20 mm"
   name: rc_spacers_20
   description: "Front roll-centre spacers 20 mm + matching bump-steer spacers (typical for lowered MacPherson)"
 set:

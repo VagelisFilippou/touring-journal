@@ -1,4 +1,6 @@
 meta:
+  group: "Engine"
+  label: "Single Solex, 100 PS (until April 2026)"
   name: engine_single_solex
   description: "The car until April 2026: single Solex 40 PDSI, 100 PS (GH p.13 curve). Matches the GH road test (0-100 10.3 s)"
 set:

@@ -132,9 +132,12 @@ class Params(Node):
         yield from walk(self.raw, "")
 
 
+_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)   # libyaml when available (~6x faster); Pyodide falls back
+
+
 def _read(path: Path) -> dict:
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        return yaml.load(f, Loader=_LOADER) or {}
 
 
 def _set_path(d: dict, path: str, new, origin: str):
@@ -177,6 +180,35 @@ def load(*variants: str, base: str | None = None, overrides: dict | None = None)
     p = Params(raw, name, applied)
     validate(p)
     return p
+
+
+GROUP_ORDER = ["Chassis", "Wheels & tyres", "Engine", "Gearbox", "Final drive", "Combinations", "My setups"]
+EXCLUSIVE_GROUPS = {"Engine", "Gearbox", "Final drive", "Wheels & tyres"}
+
+
+_CATALOG = {}
+
+
+def variant_catalog() -> list[dict]:
+    """All variant files with their group and label (meta.group / meta.label); unknown -> 'My setups'.
+    Cached; re-read only when a variant file is added, removed or changed (the GUI asks on every recompute)."""
+    files = sorted((INPUTS / "variants").glob("*.yaml"))
+    key = tuple((f.name, f.stat().st_mtime_ns) for f in files)
+    if key not in _CATALOG:
+        _CATALOG.clear()
+        _CATALOG[key] = _variant_catalog(files)
+    return [dict(v) for v in _CATALOG[key]]
+
+
+def _variant_catalog(files) -> list[dict]:
+    out = []
+    for f in files:
+        meta = (_read(f).get("meta") or {})
+        g = meta.get("group", "My setups")
+        out.append({"file": f.name, "group": g, "label": meta.get("label", f.stem.replace("_", " ")),
+                    "description": meta.get("description", ""), "exclusive": g in EXCLUSIVE_GROUPS})
+    order = {g: i for i, g in enumerate(GROUP_ORDER)}
+    return sorted(out, key=lambda d: (order.get(d["group"], 99), d["label"]))
 
 
 def load_tyre(fname: str, overrides: dict | None = None) -> Params:

@@ -1,4 +1,6 @@
 meta:
+  group: "Chassis"
+  label: "Lowering springs W&N (−20 mm)"
   name: lowered_WN_springs
   description: "Walloth & Nesch 4-spring lowering set 31 31 0 440 006 (bought 12/2025): ~−15…−20 mm, 13.4 mm wire F+R. Rates unknown → placeholders"
 set:

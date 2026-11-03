@@ -226,13 +226,24 @@ def _circle_pts(c, n, r, k=18):
     return c + r * (np.outer(np.cos(t), e1) + np.outer(np.sin(t), e2))
 
 
+def _cross2(o, a, b):
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+
 def _hull(p2):
-    from scipy.spatial import ConvexHull
-    try:
-        h = ConvexHull(p2)
-        return p2[h.vertices]
-    except Exception:
+    """2D convex hull (monotone chain; scipy's qhull writes temp files on every call, too slow here)."""
+    pts = np.unique(np.round(p2, 9), axis=0)
+    if len(pts) < 3:
         return p2
+
+    def half(seq):
+        out = []
+        for q in seq:
+            while len(out) >= 2 and _cross2(out[-2], out[-1], q) <= 0:
+                out.pop()
+            out.append(q)
+        return out[:-1]
+    return np.array(half(pts) + half(pts[::-1]))
 
 
 def project(prim, view):
@@ -257,15 +268,27 @@ def project(prim, view):
 
 
 def render2d(ax, prims, view, scale=1e3, edge=True):
+    """Painter's algorithm: far primitives first. Consecutive fills / lines go into one collection each
+    (one artist instead of hundreds keeps redraws fast)."""
+    import matplotlib.colors                              # desktop only (the web lab has no matplotlib)
+    from matplotlib.collections import LineCollection, PolyCollection
     items = [(project(p, view), p) for p in prims]
     items.sort(key=lambda it: it[0][2])                  # far first
-    for z, ((kind, xy, depth), p) in enumerate(items):
-        xy = xy * scale
+    runs = []
+    for (kind, xy, depth), p in items:
+        if not runs or runs[-1][0] != kind:
+            runs.append((kind, []))
+        runs[-1][1].append((xy * scale, p))
+    for z, (kind, run) in enumerate(runs):
+        xys = [xy for xy, _ in run]
         if kind == "fill":
-            ax.fill(xy[:, 0], xy[:, 1], color=p["color"], alpha=p["alpha"], zorder=2 + z * 0.01,
-                    ec="#1b1b1b" if edge else "none", lw=0.3)
+            fc = [matplotlib.colors.to_rgba(p["color"], p["alpha"]) for _, p in run]
+            col = PolyCollection(xys, facecolors=fc, edgecolors="#1b1b1b" if edge else "none", linewidths=0.3, zorder=2 + z * 0.01)
         else:
-            ax.plot(xy[:, 0], xy[:, 1], color=p["color"], lw=p.get("lw", 1.5), zorder=2 + z * 0.01)
+            col = LineCollection(xys, colors=[p["color"] for _, p in run], linewidths=[p.get("lw", 1.5) for _, p in run],
+                                 zorder=2 + z * 0.01, capstyle="round")
+        ax.add_collection(col)
+    ax.autoscale_view()
 
 
 def render3d(ax, prims, scale=1e3):

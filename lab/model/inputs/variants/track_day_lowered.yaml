@@ -1,0 +1,7 @@
+meta:
+  group: "Combinations"
+  label: "Track day: lowered + spacers + Alpina + 235/5 + 3.90"
+  name: track_day_lowered
+  description: "Example combination: W&N springs + RC spacers + Alpina struts + 235/5 + 3.90"
+variants: [lowered_WN_springs.yaml, rc_spacers_20.yaml, alpina_bilstein_struts.yaml, gearbox_235_5.yaml, final_drive_390.yaml]
+set: {}

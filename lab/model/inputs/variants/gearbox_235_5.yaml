@@ -1,4 +1,6 @@
 meta:
+  group: "Gearbox"
+  label: "Getrag 235/5 dogleg"
   name: gearbox_235_5
   description: "Getrag 235/5 dogleg close-ratio 5-speed (Master_Tracker ID 168/169, on hand)"
 set:

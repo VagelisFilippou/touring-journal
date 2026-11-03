@@ -4,148 +4,296 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Suspension lab</title>
+<title>Vehicle Dynamics Workbench</title>
 <link rel="icon" type="image/png" href="../logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="../fonts/fonts.css"><!-- self-hosted next to the journal (no Google requests) -->
 <style>
-:root{--bg:#eef0ee;--surface:#fff;--fg:#1b1f22;--muted:#5a6268;--line:#d4d9d6;--accent:#c25a16;--accent-ink:#9a4510;--ref:#9aa3a8;
-  --display:"Archivo",system-ui,sans-serif;--body:"Source Serif 4",Georgia,serif;--mono:"JetBrains Mono",ui-monospace,monospace}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121517;--surface:#1a1e21;--fg:#e7e9e5;--muted:#a2aaaf;--line:#2c3236;--accent:#ec8a43;--accent-ink:#f2a46b;--ref:#6b7378;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#121517;--surface:#1a1e21;--fg:#e7e9e5;--muted:#a2aaaf;--line:#2c3236;--accent:#ec8a43;--accent-ink:#f2a46b;--ref:#6b7378;color-scheme:dark}
+:root{--bg:#eef0ee;--surface:#fff;--surface-2:#f6f7f5;--fg:#1b1f22;--muted:#5a6268;--line:#d4d9d6;--accent:#c25a16;--accent-ink:#9a4510;--ref:#9aa3a8;
+  --bar:#1b1f22;--bar-fg:#f2f2ee;--bar-muted:#aeb4b8;--bar-btn:#2c3236;--rear:#2c5d8a;--good:#2e8b57;--bad:#c0392b;
+  --display:"Archivo",system-ui,sans-serif;--body:"Source Serif 4",Georgia,serif;--mono:"JetBrains Mono",ui-monospace,monospace;--ui:"Archivo",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121517;--surface:#1a1e21;--surface-2:#202529;--fg:#e7e9e5;--muted:#a2aaaf;--line:#2c3236;--accent:#ec8a43;--accent-ink:#f2a46b;--ref:#6b7378;--bar:#0b0d0e;--bar-btn:#23292d;--rear:#6fa3d6;--good:#5cbf86;--bad:#ef6f61;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121517;--surface:#1a1e21;--surface-2:#202529;--fg:#e7e9e5;--muted:#a2aaaf;--line:#2c3236;--accent:#ec8a43;--accent-ink:#f2a46b;--ref:#6b7378;--bar:#0b0d0e;--bar-btn:#23292d;--rear:#6fa3d6;--good:#5cbf86;--bad:#ef6f61;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 var(--body)}
-.wrap{max-width:1500px;margin:0 auto;padding:16px}
-header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;border-bottom:2px solid var(--fg);padding-bottom:10px}
-header h1{font:800 clamp(1.6rem,4vw,2.4rem)/1 var(--display);font-stretch:115%;margin:0}
-header a{font:600 .8rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);text-decoration:none}
-.lede{max-width:75ch;color:var(--muted);margin:10px 0 0}
-#status{font:600 .8rem var(--mono);color:var(--accent-ink);margin:10px 0;min-height:1.2em}
-.grid{display:grid;grid-template-columns:330px 1fr;gap:16px;margin-top:8px}
-@media (max-width:900px){.grid{grid-template-columns:1fr}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px}
-.panel h2{font:700 .8rem var(--mono);letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px;color:var(--muted)}
-details{border-top:1px solid var(--line);padding:6px 0}
-summary{cursor:pointer;font:700 .95rem var(--display)}
-.sl{margin:8px 0}
-.sl label{display:flex;justify-content:space-between;gap:8px;font-size:.85rem}
-.sl label b{font:600 .8rem var(--mono);color:var(--accent-ink);white-space:nowrap}
-.sl small{display:block;font:500 .7rem var(--mono);color:var(--muted)}
-input[type=range]{width:100%;accent-color:var(--accent)}
-.vars label{display:block;font-size:.88rem}
-button{font:600 .8rem var(--mono);background:none;border:1px solid var(--line);color:var(--fg);border-radius:4px;padding:6px 10px;cursor:pointer;margin-top:8px}
-button:hover{border-color:var(--accent)}
-.views{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media (max-width:1100px){.views{grid-template-columns:1fr}}
-.view svg{width:100%;height:auto;display:block;background:var(--surface)}
-.read{font:500 .75rem/1.5 var(--mono);color:var(--muted);margin-top:4px}
-.charts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-@media (max-width:700px){.charts{grid-template-columns:1fr}}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--ui);display:flex;flex-direction:column}
+/* header bar */
+.bar{display:flex;align-items:center;gap:14px;background:var(--bar);color:var(--bar-fg);padding:7px 12px;flex:none}
+.bar h1{font:700 1.05rem var(--display);font-stretch:110%;margin:0;white-space:nowrap}
+.bar .setup{font:500 .8rem var(--ui);color:var(--bar-muted);margin-left:auto;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.bar a{font:600 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--bar-muted);text-decoration:none;white-space:nowrap}
+.bar a:hover{color:var(--bar-fg)}
+.bar button{background:var(--bar-btn);color:var(--bar-fg);border:0;border-radius:4px;padding:5px 11px;font:600 .8rem var(--ui);cursor:pointer;margin:0}
+.bar button:hover{background:var(--accent)}
+/* app area */
+.app{flex:1;display:flex;min-height:0}
+#side{width:400px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface-2);min-height:0}
+#side[hidden]{display:none}
+main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+.tabs{display:flex;gap:2px;padding:6px 8px 0;border-bottom:1px solid var(--line);overflow-x:auto;flex:none;scrollbar-width:thin}
+.tabs button{border:1px solid transparent;border-bottom:0;background:none;color:var(--muted);font:600 .8rem var(--ui);padding:6px 11px;border-radius:5px 5px 0 0;cursor:pointer;white-space:nowrap;margin:0}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--accent-ink);border-color:var(--line);margin-bottom:-1px}
+.pane,.view{display:none}
+.pane.on,.view.on{display:block}
+.scroll{flex:1;overflow:auto;min-height:0}
+.pane{padding:10px 14px 18px}
+.view{padding:12px 14px 18px}
+/* status bar */
+#status{flex:none;font:500 .78rem var(--mono);color:var(--muted);background:var(--surface-2);border-top:1px solid var(--line);padding:4px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status.err{color:var(--bad)}
+/* setup panel */
+fieldset{border:1px solid var(--line);border-radius:6px;margin:0 0 10px;padding:6px 10px 8px;background:var(--surface)}
+legend{font:700 .78rem var(--ui);color:var(--accent-ink);padding:0 4px}
+legend small{font-weight:500;color:var(--muted)}
+fieldset label.ck{display:flex;gap:6px;align-items:baseline;font-size:.88rem;margin:2px 0;cursor:pointer}
+select{width:100%;font:500 .85rem var(--ui);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px}
+.sec{font:700 .8rem var(--ui);color:var(--accent-ink);margin:12px 0 2px}
+.sec:first-child{margin-top:0}
+.sl{margin:7px 0 9px}
+.sl .lab{display:flex;justify-content:space-between;gap:8px;font-size:.85rem}
+.sl .lab small{font:500 .7rem var(--mono);color:var(--muted);white-space:nowrap}
+.sl .ctl{display:flex;gap:6px;align-items:center}
+.sl .ctl input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.sl .ctl input[type=number]{width:5.6em;font:500 .8rem var(--mono);text-align:right;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:2px 4px}
+.sl.moved .ctl input[type=number]{border-color:var(--accent);color:var(--accent-ink)}
+.sl.off{opacity:.45}
+.rst{background:none;border:1px solid var(--line);color:var(--muted);border-radius:4px;width:24px;height:22px;padding:0;cursor:pointer;font-size:.8rem;margin:0}
+.rst:hover{border-color:var(--accent);color:var(--accent-ink)}
+.btn{font:600 .8rem var(--ui);background:var(--surface);border:1px solid var(--line);color:var(--fg);border-radius:4px;padding:6px 11px;cursor:pointer;margin:0}
+.btn:hover{border-color:var(--accent)}
+.btn.acc{background:var(--accent);border-color:var(--accent);color:#fff}
+.hint{font:500 .75rem var(--ui);color:var(--muted);margin:8px 0 0}
+/* views */
+.vgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(220px,1fr);gap:12px;align-items:start}
+@media (max-width:1100px){.vgrid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px}
+.card h2{font:700 .82rem var(--ui);margin:0 0 6px;color:var(--fg)}
+.card h2 small{font-weight:500;color:var(--muted)}
+.card svg.draw{width:100%;height:auto;display:block}
+.stack{display:grid;gap:12px}
+.read{font:500 .75rem/1.55 var(--mono);color:var(--muted);margin-top:6px}
+.charts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.charts6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:1300px){.charts6{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:700px){.charts6{grid-template-columns:1fr}}
 .chart svg{width:100%;height:auto;display:block}
-.chart .t{font:600 .75rem var(--mono);color:var(--muted)}
-table{width:100%;border-collapse:collapse;font-size:.88rem}
-td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right}
-td:first-child,th:first-child{text-align:left}
-th{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.pos{color:#2e8b57}.neg{color:#c0392b}
-.note{font-size:.85rem;color:var(--muted);max-width:90ch}
+.chart .t{font:600 .72rem var(--ui);color:var(--muted)}
 .legend{font:500 .72rem var(--mono);color:var(--muted)}
 .legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin:0 4px 0 10px}
-.vars select{width:100%;font:500 .85rem var(--body);margin:2px 0 6px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px}
-.vars .g{font:700 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
-#map{height:430px;border-radius:4px;border:1px solid var(--line)}
-.roadbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
-.roadbar select,.roadbar input{font:500 .85rem var(--body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px}
-.roadbar button{margin:0}
-#road-summary{font:500 .85rem/1.6 var(--mono);margin:8px 0}
-.gtab{width:100%;border-collapse:collapse;font:500 .72rem var(--mono);margin:4px 0 8px}
+.legend i:first-child{margin-left:0}
+.note{font:400 .85rem/1.5 var(--body);color:var(--muted);max-width:95ch}
+table.res{width:100%;border-collapse:collapse;font-size:.86rem;max-width:980px}
+table.res td,table.res th{padding:4px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+table.res td:first-child,table.res th:first-child{text-align:left}
+table.res th{font:700 .72rem var(--ui);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+table.res tr.grp td{background:var(--surface-2);font-weight:700;color:var(--fg);text-align:left;padding-top:8px}
+table.res tr.chg td:first-child{color:var(--accent-ink)}
+.pos{color:var(--good)}.neg{color:var(--bad)}.chgv{color:var(--accent-ink)}
+.gtab{width:100%;border-collapse:collapse;font:500 .74rem var(--mono);margin:2px 0 4px}
 .gtab td,.gtab th{padding:2px 4px;border-bottom:1px solid var(--line);text-align:right}
 .gtab th{color:var(--muted);font-weight:600}
-.gtab .cap{font:500 .7rem var(--mono);color:var(--muted);text-align:left;border:0}
+.gtab .cap{font:500 .72rem var(--ui);color:var(--muted);text-align:left;border:0}
+.gtab.big{font-size:.85rem;max-width:760px}
+.gtab.big td,.gtab.big th{padding:4px 8px}
 .gsw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin-right:3px}
+.intro{max-width:70ch;margin:40px auto;text-align:center;color:var(--muted)}
+.intro h2{font:800 1.6rem var(--display);font-stretch:112%;color:var(--fg);margin:0 0 8px}
+.intro p{font:400 1rem/1.55 var(--body)}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* road (unchanged look) */
+#map{height:460px;border-radius:4px;border:1px solid var(--line)}
+.roadbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
+.roadbar select,.roadbar input{width:auto;font:500 .85rem var(--ui);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px}
+.roadbar button{font:600 .8rem var(--ui);background:var(--surface);border:1px solid var(--line);color:var(--fg);border-radius:4px;padding:5px 10px;cursor:pointer;margin:0}
+.roadbar button:hover{border-color:var(--accent)}
+.roadbar label{font-size:.85rem}
+#road-summary{font:500 .85rem/1.6 var(--mono);margin:8px 0}
 .maplegend{background:var(--surface);color:var(--fg);padding:6px 8px;border-radius:4px;font:500 11px var(--mono);box-shadow:0 1px 4px rgba(0,0,0,.3);line-height:1.5}
-.maplegend .bar{width:160px;height:10px;border-radius:2px;margin:3px 0}
+.maplegend .bar{width:160px;height:10px;border-radius:2px;margin:3px 0;display:block;padding:0;background:none}
 .maplegend .ends{display:flex;justify-content:space-between}
-.eng{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-@media (max-width:900px){.eng{grid-template-columns:1fr}}
+#road-lines{font:500 .8rem/1.6 var(--mono);margin:2px 0 6px}
+#road-lines b{color:var(--accent-ink)}
+.mapgrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(270px,1fr);gap:10px;align-items:start}
+@media (max-width:900px){.mapgrid{grid-template-columns:1fr}}
+.linepanel{border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--surface)}
+.linepanel .lp-t{font:700 .78rem var(--ui);color:var(--muted);margin-bottom:4px}
+.linepanel .lp-h{font-weight:500}
+.linepanel svg{width:100%;height:auto;display:block;border-radius:4px}
+.linepanel .zl{display:flex;gap:10px;flex-wrap:wrap;font:500 11px var(--mono);margin:4px 0}
+.linepanel .zl i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:3px}
+.lp-k{font-size:.8rem;display:block;margin-top:4px}
 #road-summary b{color:var(--accent-ink);font-size:1.05rem}
 .road-charts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:900px){.road-charts{grid-template-columns:1fr}}
+/* phones / narrow windows: panel above the views, page scrolls */
+@media (max-width:900px){
+  body{display:block;height:auto}
+  .app{display:block}
+  #side{width:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .scroll{overflow:visible}
+  .bar{position:sticky;top:0;z-index:1000;flex-wrap:wrap}
+  .bar .setup{flex-basis:100%;text-align:left;margin:0}
+  #status{position:sticky;bottom:0}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-<header><h1>Suspension lab</h1><a href="../index.html">← Journal</a></header>
-<p class="lede">Play with the suspension of our BMW 1600 Touring: pick a setup, move the sliders and see the
-front and rear axle move, the roll centres shift and the handling numbers change. It runs the same Python model
-we use at home, right in your browser. The first load takes a while (it downloads Python and SciPy, ~30 MB, cached afterwards).</p>
-<div id="status">Loading Python…</div>
-<div class="grid">
-  <aside class="panel" id="controls" hidden>
-    <h2>Setup</h2>
-    <div class="vars" id="variants"></div>
-    <div id="gear-table"></div>
-    <div id="sliders"></div>
-    <button id="reset">Reset sliders</button>
-    <details open><summary>Pose (display only)</summary>
-      <div class="sl"><label>Heave / wheel travel <b id="o-heave">0 mm</b></label><input type="range" id="heave" min="-80" max="80" step="1" value="0"></div>
-      <div class="sl"><label>Body roll (+ right side down) <b id="o-roll">0°</b></label><input type="range" id="roll" min="-6" max="6" step="0.1" value="0"></div>
-      <div class="sl"><label>Steering (centre-link travel) <b id="o-steer">0 mm</b></label><input type="range" id="steer" min="-40" max="40" step="1" value="0"></div>
-    </details>
-  </aside>
-  <main id="main" hidden>
-    <div class="views">
-      <div class="panel view"><h2>Front axle — seen from the front</h2><svg id="v-front" viewBox="-1000 -980 2000 1130"></svg><div class="read" id="r-front"></div></div>
-      <div class="panel view"><h2>Rear axle — seen from behind</h2><svg id="v-rear" viewBox="-1000 -980 2000 1130"></svg><div class="read" id="r-rear"></div></div>
-    </div>
-    <div class="panel" style="margin-top:12px"><h2>Engine &amp; gearing</h2>
-      <div class="legend"><i style="background:var(--ref)"></i>car as it is<i style="background:var(--accent)"></i>this setup</div>
-      <div class="eng" id="eng-charts"></div><p class="note" id="eng-note"></p></div>
-    <div class="panel" style="margin-top:12px"><h2>Kinematics vs wheel travel</h2>
-      <div class="legend"><i style="background:var(--ref)"></i>baseline (the car as it is)<i style="background:var(--accent)"></i>front, current<i style="background:#2c5d8a"></i>rear, current</div>
-      <div class="charts" id="charts"></div></div>
-    <div class="panel" style="margin-top:12px"><h2>Results — performance, cornering, ride</h2>
-      <table id="results"></table>
-      <p class="note">Steady state, driver on board, no aero. Many inputs are still estimates from books, drawings and
-      forums (the car is in Greece and hasn't been measured yet), so compare setups with each other rather than trusting
-      the absolute numbers. Part shapes are indicative; the suspension pickup points drive the kinematics.</p></div>
-    <div class="panel" style="margin-top:12px"><h2>Road — time and speed on a real road</h2>
-      <div class="roadbar">
-        <select id="road-preset"><option value="">Choose a road…</option></select>
-        <button id="road-draw">Draw your own route</button>
-        <button id="road-go">Route &amp; simulate</button>
-        <label style="font-size:.85rem">start speed <input id="road-v0" type="number" value="0" min="0" max="150" step="10" style="width:5em"> km/h</label>
-        <label style="font-size:.85rem">colour by <select id="road-colour"><option value="speed">speed</option><option value="gear">gear</option></select></label>
-        <button id="road-save">Save route</button>
-        <button id="road-load">Load route file</button><input type="file" id="road-file" accept=".yaml,.yml,.json" hidden>
+<header class="bar">
+  <button id="toggle" title="Show / hide the setup panel (Ctrl+B or F9)">◀ Setup</button>
+  <h1>Vehicle Dynamics Workbench</h1>
+  <span class="setup" id="setup-name"></span>
+  <a href="../index.html">← Journal</a>
+</header>
+<div class="app">
+  <aside id="side">
+    <nav class="tabs" id="stabs" role="tablist"></nav>
+    <div class="scroll" id="panes">
+      <div class="pane on" data-pane="Setup">
+        <div id="variants"></div>
+        <fieldset><legend>Pose <small>(display only)</small></legend>
+          <div class="sl"><div class="lab"><span>Heave / wheel travel [mm]</span></div><div class="ctl"><input type="range" id="heave" min="-80" max="80" step="1" value="0"><input type="number" id="n-heave" value="0" step="1"></div></div>
+          <div class="sl"><div class="lab"><span>Body roll [°] (+ right side down)</span></div><div class="ctl"><input type="range" id="roll" min="-6" max="6" step="0.1" value="0"><input type="number" id="n-roll" value="0" step="0.1"></div></div>
+          <div class="sl"><div class="lab"><span>Steering: centre-link shift [mm]</span></div><div class="ctl"><input type="range" id="steer" min="-40" max="40" step="1" value="0"><input type="number" id="n-steer" value="0" step="1"></div></div>
+          <button class="btn" id="centre-pose">Centre pose</button>
+        </fieldset>
+        <button class="btn" id="reset">Reset all sliders</button>
+        <p class="hint">Ctrl+B or F9 hides this panel to give the plots more room. Sliders are what-ifs on top of the chosen setup; ↺ puts one back.</p>
       </div>
-      <div id="road-status" class="note">Pick the Voula hillclimb, or draw a route: click the start, any via points and the finish on the map.
-      Saved routes stay in this browser (“My routes”) and are downloaded as a file you can load again or share.</div>
-      <div id="map"></div>
-      <div id="road-summary"></div>
-      <div id="road-hover" class="read">Point at the route on the map, or at a plot, to read distance, speed, gear and rpm.</div>
-      <div class="road-charts" id="road-charts"></div>
-      <p class="note">Theoretical limit for the selected setup: full throttle, ideal gear changes, the cornering limit
-      from the model in every bend and the braking limit before it; dry road, no driver margin. Roads come from
-      OpenStreetMap (routing by OSRM), heights from Open-Meteo (Copernicus DEM, 90 m); the elevation is smoothed.</p></div>
+    </div>
+  </aside>
+  <main>
+    <nav class="tabs" id="vtabs" role="tablist"></nav>
+    <div class="scroll" id="views">
+      <div class="intro" id="intro"><h2>Vehicle Dynamics Workbench</h2>
+        <p>Suspension kinematics, handling, performance and road simulation of our BMW 1600 Touring, running the same
+        Python model we use at home, right in your browser. The first visit downloads Python and SciPy (about 30 MB, cached afterwards).</p>
+        <p><span class="spin"></span><span id="intro-status">Loading Python…</span></p></div>
+
+      <section class="view" data-view="Front axle"><div class="vgrid">
+        <div class="card"><h2>Front axle seen from the front <small>(car's left wheel on the right)</small></h2><svg class="draw" id="v-front" viewBox="-1000 -1500 2000 1650"></svg><div class="read" id="r-front"></div></div>
+        <div class="stack"><div class="card"><h2>Plan view <small>(front up)</small></h2><svg class="draw" id="p-front"></svg></div>
+          <div class="card" id="m-front"></div></div></div></section>
+
+      <section class="view" data-view="Rear axle"><div class="vgrid">
+        <div class="card"><h2>Rear axle seen from behind <small>(car's left wheel on the left)</small></h2><svg class="draw" id="v-rear" viewBox="-1000 -1500 2000 1650"></svg><div class="read" id="r-rear"></div></div>
+        <div class="stack"><div class="card"><h2>Plan view <small id="p-rear-t">(front up)</small></h2><svg class="draw" id="p-rear"></svg></div>
+          <div class="card" id="m-rear"></div></div></div></section>
+
+      <section class="view" data-view="Side view"><div class="card"><h2>Side view from the left <small>(front of the car on the left)</small></h2><svg class="draw" id="v-side" viewBox="-950 -1550 4700 1700"></svg></div>
+        <p class="note">Suspension parts and wheels from the model, at the pose set in the Setup tab. Part shapes are indicative; the pickup points drive the kinematics.</p></section>
+
+      <section class="view" data-view="Plan view"><div class="card"><h2>Plan view from above <small>(front of the car on the left)</small></h2><svg class="draw" id="v-plan" viewBox="-950 -1000 4700 2000"></svg></div></section>
+
+      <section class="view" data-view="Curves"><div class="legend" style="margin-bottom:8px"><i style="background:var(--ref)"></i>car as is<i style="background:var(--accent)"></i>front, this setup<i style="background:var(--rear)"></i>rear, this setup<i style="background:var(--muted);height:1px"></i>dotted: heave pose</div>
+        <div class="charts6" id="charts"></div></section>
+
+      <section class="view" data-view="Results"><table class="res" id="results"></table>
+        <p class="note">Steady state, driver on board, no aero. Many inputs are still estimates from books, drawings and forums
+        (the car is in Greece and hasn't been measured yet), so compare setups with each other rather than trusting the absolute
+        numbers. Green / red = better / worse where that is clear; orange = changed.</p></section>
+
+      <section class="view" data-view="Engine & gearing">
+        <div class="legend" style="margin-bottom:6px"><i style="background:var(--ref)"></i>car as is<i style="background:var(--accent)"></i>this setup</div>
+        <div class="charts" id="eng-charts"></div>
+        <div id="eng-table" style="margin-top:12px"></div>
+        <p class="note" id="eng-note"></p></section>
+
+      <section class="view" data-view="Road">
+        <div class="roadbar">
+          <select id="road-preset"><option value="">Choose a road…</option></select>
+          <button id="road-draw">Draw your own route</button>
+          <button id="road-go">Route &amp; simulate</button>
+          <label>start speed <input id="road-v0" type="number" value="0" min="0" max="150" step="10" style="width:5em"> km/h</label>
+          <label>line <select id="road-line"><option value="centre">centre of the road</option><option value="lane">own lane (keep right)</option><option value="full">racing line (full width)</option></select></label>
+          <label>road width <input id="road-width" type="number" value="6" min="3" max="14" step="0.5" style="width:4.5em"> m</label>
+          <label>colour by <select id="road-colour"><option value="speed">speed</option><option value="gear">gear</option></select></label>
+          <button id="road-save">Save route</button>
+          <button id="road-load">Load route file</button><input type="file" id="road-file" accept=".yaml,.yml,.json" hidden>
+        </div>
+        <div id="road-status" class="note">Pick a road, or draw a route: click the start, any via points and the finish on the map.
+        Saved routes stay in this browser (“My routes”) and are downloaded as a file you can load again or share.</div>
+        <div class="mapgrid"><div id="map"></div>
+          <div class="linepanel"><div class="lp-t">Driving line — close-up <span class="lp-h">(heading up, 90 m)</span></div>
+            <svg id="lp-svg" viewBox="0 0 300 300"></svg>
+            <div class="zl" id="lp-legend"></div>
+            <div id="lp-info" class="read">Point at the route, the map or a plot.</div>
+            <label class="lp-k"><input type="checkbox" id="show-keys" checked> show shift &amp; braking points</label>
+          </div></div>
+        <div id="road-summary"></div>
+        <div id="road-lines"></div>
+        <div id="road-hover" class="read">Point at the route on the map, or at a plot, to read distance, speed, gear and rpm.</div>
+        <div class="road-charts" id="road-charts"></div>
+        <p class="note">Theoretical limit for the selected setup: full throttle, ideal gear changes, the cornering limit
+        from the model in every bend and the braking limit before it; dry road, no driver margin. Roads come from
+        OpenStreetMap (routing by OSRM), heights from Open-Meteo (Copernicus DEM, 90 m); the elevation is smoothed.
+        Lines: the own-lane and racing lines are minimum-curvature lines within the lane or the whole road (closed road);
+        the road width is not in the map data, so set it. Hover over the route to see the lines up close.
+        Shift points follow practical rules (change down under braking at ≤ 5500 rpm, no gear held under 1.5 s; both are
+        sliders in the Powertrain tab); the lap time assumes ideal shifting. Braking is limited by tyre grip and the
+        brake balance; brake fade is not modelled. Circuits run as a standing-start lap from the start line.</p></section>
+
+      <section class="view" data-view="Dampers & tyre"><div class="charts" id="dt-charts"></div>
+        <p class="note">Damper curves are placeholders (confidence D) until the real Koni data are in; the tyre is a generic
+        185/70 R13 road tyre. Handling diagram: steering beyond the Ackermann angle against lateral acceleration; a rising
+        line means understeer.</p></section>
+    </div>
   </main>
 </div>
-</div>
+<div id="status">Loading…</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script>
-const MANIFEST = {"files": ["vdm/__init__.py", "vdm/params.py", "vdm/kinematics.py", "vdm/steady_state.py", "vdm/tyre.py", "vdm/drawing.py", "vdm/powertrain.py", "vdm/lapsim.py", "vdm/roads.py", "vdm/web.py", "inputs/baseline.yaml", "inputs/sources.yaml", "inputs/variants/lowered_WN_springs.yaml", "inputs/variants/rc_spacers_20.yaml", "inputs/variants/alpina_bilstein_struts.yaml", "inputs/variants/arb_ST_22_19.yaml", "inputs/variants/rear_subframe_raised.yaml", "inputs/variants/wheels_FPS_5J_ET26.yaml", "inputs/variants/engine_single_solex.yaml", "inputs/variants/engine_dcoe_300cam.yaml", "inputs/variants/gearbox_235_5.yaml", "inputs/variants/gearbox_245_2_close.yaml", "inputs/variants/gearbox_245_4_od.yaml", "inputs/variants/final_drive_345.yaml", "inputs/variants/final_drive_390.yaml", "inputs/variants/final_drive_411.yaml", "inputs/tyres/generic_185_70R13.yaml", "inputs/roads/voula_hillclimb.yaml"], "stamp": "6da2d6c652"};
+const MANIFEST = {"files": ["vdm/__init__.py", "vdm/params.py", "vdm/kinematics.py", "vdm/steady_state.py", "vdm/tyre.py", "vdm/drawing.py", "vdm/powertrain.py", "vdm/lapsim.py", "vdm/roads.py", "vdm/racing_line.py", "vdm/setup_ui.py", "vdm/web.py", "inputs/baseline.yaml", "inputs/sources.yaml", "inputs/variants/alpina_bilstein_struts.yaml", "inputs/variants/arb_ST_22_19.yaml", "inputs/variants/lowered_WN_springs.yaml", "inputs/variants/rear_subframe_raised.yaml", "inputs/variants/rc_spacers_20.yaml", "inputs/variants/wheels_FPS_5J_ET26.yaml", "inputs/variants/engine_single_solex.yaml", "inputs/variants/engine_dcoe_300cam.yaml", "inputs/variants/gearbox_235_5.yaml", "inputs/variants/gearbox_245_2_close.yaml", "inputs/variants/gearbox_245_4_od.yaml", "inputs/variants/final_drive_345.yaml", "inputs/variants/final_drive_390.yaml", "inputs/variants/final_drive_411.yaml", "inputs/variants/track_day_lowered.yaml", "inputs/tyres/generic_185_70R13.yaml", "inputs/roads/Agia_Anna_Hillclimb.yaml", "inputs/roads/megara_circuit.yaml", "inputs/roads/voula_hillclimb.yaml"], "stamp": "4bdee600c5"};
 const $ = id => document.getElementById(id);
-let py, web, variants = [], sliders = [], values = {}, busy = false, pending = null;
-const status = t => $("status").textContent = t;
+const SETUP_TABS = ["Setup","Geometry","Springs","Powertrain","Mass"];
+const VIEW_TABS = ["Front axle","Rear axle","Side view","Plan view","Curves","Results","Engine & gearing","Road","Dampers & tyre"];
+let py, web, VV=null, variants=[], sliders=[], values={}, busy=false, pending=null, R=null, activeView="Front axle", activePane="Setup";
+const dirty = {};             // views that need a redraw after the next compute
+const status = (t, err) => { $("status").textContent = t; $("status").className = err ? "err" : ""; };
+const store = { get(k){ try{ return localStorage.getItem("vdw_"+k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem("vdw_"+k,v); }catch(e){} } };
 
+// ------------------------------------------------------------------ tabs + panel
+function buildTabs(){
+  $("stabs").innerHTML = SETUP_TABS.map(t=>`<button role="tab" data-t="${t}">${t}</button>`).join("");
+  $("vtabs").innerHTML = VIEW_TABS.map(t=>`<button role="tab" data-t="${t}">${t}</button>`).join("");
+  $("stabs").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) showPane(b.dataset.t); });
+  $("vtabs").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) showView(b.dataset.t); });
+  $("toggle").addEventListener("click", togglePanel);
+  document.addEventListener("keydown", e=>{ if((e.ctrlKey&&e.key.toLowerCase()==="b")||e.key==="F9"){ e.preventDefault(); togglePanel(); } });
+  const pref=store.get("panel");                      // phones start with the plots; the panel is one tap away
+  if(pref==="hidden" || (!pref && window.matchMedia("(max-width:900px)").matches)) togglePanel();
+  showPane(store.get("pane")||"Setup");
+}
+function showPane(t){
+  if(!SETUP_TABS.includes(t)) t="Setup";
+  activePane=t; store.set("pane",t);
+  document.querySelectorAll("#stabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.t===t));
+  document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on", p.dataset.pane===t));
+}
+function showView(t){
+  if(!VIEW_TABS.includes(t)) t="Front axle";
+  activeView=t; store.set("view",t);
+  document.querySelectorAll("#vtabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.t===t));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on", v.dataset.view===t));
+  if(t==="Road" && map) setTimeout(()=>map.invalidateSize(), 0);
+  if(R) renderActive();
+}
+function togglePanel(){
+  const s=$("side"); s.hidden=!s.hidden; $("toggle").textContent=(s.hidden?"▶":"◀")+" Setup"; store.set("panel", s.hidden?"hidden":"shown");
+  if(map) setTimeout(()=>map.invalidateSize(), 50);
+}
+
+// ------------------------------------------------------------------ boot
 async function boot(){
+  buildTabs();
   try{
+    status("Loading Python…");
     py = await loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"});
-    status("Loading NumPy, SciPy, PyYAML…");
+    $("intro-status").textContent="Loading NumPy, SciPy, PyYAML…"; status("Loading NumPy, SciPy, PyYAML…");
     await py.loadPackage(["numpy","scipy","pyyaml"]);
-    status("Loading the model…");
+    $("intro-status").textContent="Loading the model…"; status("Loading the model…");
     for (const f of MANIFEST.files){
       const r = await fetch("model/"+f+"?v="+MANIFEST.stamp); if(!r.ok) throw new Error("missing "+f);
       const dir = "/model/"+f.split("/").slice(0,-1).join("/");
@@ -153,101 +301,183 @@ async function boot(){
     }
     py.runPython("import sys; sys.path.insert(0,'/model')\nfrom vdm import web");
     web = py.globals.get("web");
-    const VV=JSON.parse(web.variants()), groups={};
-    VV.items.forEach(v=>{ (groups[v.group]=groups[v.group]||[]).push(v); });
-    Object.entries(groups).forEach(([g,items])=>{
-      const h=document.createElement("div"); h.className="g"; h.textContent=g; $("variants").appendChild(h);
-      if(g==="Chassis"){ items.forEach(v=>{ const l=document.createElement("label");
-          l.innerHTML=`<input type="checkbox" value="${v.file}"> ${v.label}`;
-          l.querySelector("input").addEventListener("change", onVariants); $("variants").appendChild(l); }); }
-      else { const sel=document.createElement("select");
-          sel.innerHTML=`<option value="">${VV.as_is[g]||"as is"}</option>`+items.map(v=>`<option value="${v.file}">${v.label}</option>`).join("");
-          sel.addEventListener("change", onVariants); $("variants").appendChild(sel); }
-    });
+    buildVariants();
     buildSliders("[]");
-    $("controls").hidden=false; $("main").hidden=false;
     initMap();
-    ["heave","roll","steer"].forEach(id=>$(id).addEventListener("input",()=>{updPoseLabels(); schedule(false)}));
-    $("reset").addEventListener("click",()=>{buildSliders(JSON.stringify(variants)); schedule(true)});
+    [["heave","n-heave"],["roll","n-roll"],["steer","n-steer"]].forEach(([r,n])=>{
+      $(r).addEventListener("input",()=>{ $(n).value=$(r).value; schedule(false); });
+      $(n).addEventListener("change",()=>{ $(r).value=$(n).value; $(n).value=$(r).value; schedule(false); }); });
+    $("centre-pose").addEventListener("click",()=>{ ["heave","roll","steer"].forEach(k=>{ $(k).value=0; $("n-"+k).value=0; }); schedule(false); });
+    $("reset").addEventListener("click",()=>{ buildSliders(JSON.stringify(variants)); schedule(true); });
+    $("intro").remove();
+    showView(store.get("view")||"Front axle");
     await run(true);
-  }catch(e){ status("Could not start: "+e.message); console.error(e); }
+  }catch(e){ status("Could not start: "+e.message, true); $("intro-status").textContent="Could not start: "+e.message; console.error(e); }
 }
 
-function buildSliders(vjson){
-  sliders = JSON.parse(web.setup(vjson)); values = {};
-  const groups = {}; $("sliders").innerHTML="";
-  sliders.forEach(s=>{
-    values[s.path]=s.value;
-    if(!groups[s.group]){ const d=document.createElement("details"); d.innerHTML=`<summary>${s.group}</summary>`; $("sliders").appendChild(d); groups[s.group]=d; }
-    const w=document.createElement("div"); w.className="sl";
-    w.innerHTML=`<label>${s.label} <b>${fmt(s.value)}</b></label><input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}"><small>car as is: ${fmt(s.baseline)}</small>`;
-    const inp=w.querySelector("input"), out=w.querySelector("b");
-    inp.addEventListener("input",()=>{values[s.path]=parseFloat(inp.value); out.textContent=fmt(values[s.path]); schedule(true)});
-    groups[s.group].appendChild(w);
+// ------------------------------------------------------------------ setup controls (same list as the desktop app)
+function buildVariants(){
+  VV=JSON.parse(web.variants());
+  $("variants").innerHTML="";
+  VV.groups.forEach(g=>{
+    const fs=document.createElement("fieldset");
+    fs.innerHTML=`<legend>${g.group}${g.exclusive?" <small>(choose one)</small>":""}</legend>`;
+    if(g.exclusive){ const sel=document.createElement("select"); sel.dataset.group=g.group;
+      sel.innerHTML=`<option value="">${VV.as_is[g.group]||"as is"}</option>`+g.items.map(v=>`<option value="${v.file}" title="${esc(v.description)}">${v.label}</option>`).join("");
+      sel.addEventListener("change", onVariants); fs.appendChild(sel); }
+    else g.items.forEach(v=>{ const l=document.createElement("label"); l.className="ck"; l.title=v.description||"";
+      l.innerHTML=`<input type="checkbox" value="${v.file}"> <span>${v.label}</span>`;
+      l.querySelector("input").addEventListener("change", onVariants); fs.appendChild(l); });
+    $("variants").appendChild(fs);
   });
 }
-function onVariants(){
-  variants=[...document.querySelectorAll("#variants input:checked")].map(i=>i.value)
-    .concat([...document.querySelectorAll("#variants select")].map(s=>s.value).filter(Boolean));
-  buildSliders(JSON.stringify(variants)); schedule(true);
+const esc = s => String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+function selectedVariants(){
+  const sel={}; document.querySelectorAll("#variants input:checked").forEach(i=>sel[i.value]=1);
+  document.querySelectorAll("#variants select").forEach(s=>{ if(s.value) sel[s.value]=1; });
+  const out=[]; VV.groups.forEach(g=>g.items.forEach(v=>{ if(sel[v.file]) out.push(v.file); }));   // catalogue order, like the desktop
+  return out;
 }
-const fmt = v => Math.abs(v)>=100 ? v.toFixed(0) : Math.abs(v)>=10 ? v.toFixed(1) : v.toFixed(2).replace(/\.?0+$/,"") || "0";
-function updPoseLabels(){ $("o-heave").textContent=$("heave").value+" mm"; $("o-roll").textContent=$("roll").value+"°"; $("o-steer").textContent=$("steer").value+" mm"; }
+function onVariants(){ variants=selectedVariants(); buildSliders(JSON.stringify(variants)); schedule(true); }
+function buildSliders(vjson){
+  sliders = JSON.parse(web.setup(vjson)); values = {};
+  const panes={};
+  document.querySelectorAll(".pane[data-generated]").forEach(p=>p.remove());
+  SETUP_TABS.slice(1).forEach(t=>{ const p=document.createElement("div"); p.className="pane"+(t===activePane?" on":""); p.dataset.pane=t; p.dataset.generated=1; $("panes").appendChild(p); panes[t]=p; });
+  const gt=document.createElement("div"); gt.id="gear-table"; panes["Powertrain"].appendChild(gt);
+  let lastSec={};
+  sliders.forEach(s=>{
+    values[s.path]=s.value;
+    const pane=panes[s.tab]; if(!pane) return;
+    if(lastSec[s.tab]!==s.section){ const h=document.createElement("div"); h.className="sec"; h.textContent=s.section; pane.appendChild(h); lastSec[s.tab]=s.section; }
+    const w=document.createElement("div"); w.className="sl"+(s.disabled?" off":"");
+    const asis = s.baseline_text ? s.baseline_text : fmt(s.baseline);
+    w.innerHTML=`<div class="lab"><span>${s.label}</span><small>car as is: ${asis}</small></div>`+
+      `<div class="ctl"><input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}" ${s.disabled?"disabled":""}>`+
+      `<input type="number" step="${s.step}" value="${s.value}" ${s.disabled?"disabled":""}><button class="rst" title="back to ${fmt(s.value)}" ${s.disabled?"disabled":""}>↺</button></div>`;
+    const [rg,num]=w.querySelectorAll("input"), rb=w.querySelector("button");
+    const set=v=>{ if(!isFinite(v)) return; values[s.path]=v; rg.value=v; num.value=+v.toFixed(4); w.classList.toggle("moved", Math.abs(v-s.value)>1e-9); schedule(true); };
+    rg.addEventListener("input",()=>set(parseFloat(rg.value)));
+    num.addEventListener("change",()=>set(parseFloat(num.value)));
+    rb.addEventListener("click",()=>set(s.value));
+    pane.appendChild(w);
+  });
+  if(R) drawGearTable(R.gearing.current, $("gear-table"), false);
+}
+const fmt = v => Math.abs(v)>=100 ? (+v).toFixed(0) : Math.abs(v)>=10 ? (+v).toFixed(1) : ((+v).toFixed(3).replace(/\.?0+$/,"") || "0");
 
+// ------------------------------------------------------------------ compute / pose
 let timer=null, needFull=false;
-function schedule(full){ needFull = needFull||full; clearTimeout(timer); timer=setTimeout(()=>run(needFull), full?350:40); }
+function schedule(full){ needFull = needFull||full; clearTimeout(timer); timer=setTimeout(()=>run(needFull), full?300:30); }
+const POSE_VIEWS={"Front axle":["front"],"Rear axle":["rear"],"Side view":["side"],"Plan view":["plan"]};
 async function run(full){
   if(busy){ pending=full||pending; return; }
   busy=true; needFull=false;
   try{
     if(full){ status("Computing…"); await new Promise(r=>setTimeout(r,20));
       const t0=performance.now();
-      const r=JSON.parse(web.compute(JSON.stringify(variants), JSON.stringify(values)));
-      drawResults(r); drawCharts(r); drawGearing(r.gearing);
-      if(roadPoints) simRoad(false);
-      status(`Computed in ${((performance.now()-t0)/1000).toFixed(1)} s · ${r.n_overrides} change(s) vs the selected setup · limit: ${r.limit}`);
-    }
-    const p=JSON.parse(web.pose(+$("heave").value, +$("roll").value, +$("steer").value));
-    drawView("front", p.front, false); drawView("rear", p.rear, true);
-  }catch(e){ status("This combination can't be solved (geometry out of range): "+e.message.split("\n").slice(-2)[0]); }
+      R=JSON.parse(web.compute(JSON.stringify(variants), JSON.stringify(values)));
+      VIEW_TABS.forEach(t=>dirty[t]=true);
+      drawGearTable(R.gearing.current, $("gear-table"), false);
+      $("setup-name").textContent = "Setup: " + (variants.length ? variants.map(f=>labelOf(f)).join(" + ") : "the car as it is");
+      renderActive();
+      status(`Computed in ${((performance.now()-t0)/1000).toFixed(2)} s  ·  ${R.n_overrides} slider change(s) vs the chosen setup  ·  ${R.limit} at ${R.max_ay.toFixed(2)} g`);
+    } else renderPose();
+  }catch(e){ status("This combination can't be solved (geometry out of range): "+e.message.split("\n").slice(-2)[0], true); console.error(e); }
   busy=false;
   if(pending!==null){ const f=pending; pending=null; run(f); }
 }
-
-function pts(a, mirror){ return a.map(q=>`${(mirror?-q[0]:q[0]).toFixed(1)},${(-q[1]).toFixed(1)}`).join(" "); }
-function drawView(axle, v, mirror){
-  let s="";
-  const X = x => (mirror?-x:x);
-  // ground
-  const g=v.ground, dx=g[0][0]-g[1][0], dy=g[0][1]-g[1][1], L=Math.hypot(dx,dy), ux=dx/L, uy=dy/L;
-  s+=`<polyline points="${pts([[g[1][0]-300*ux,g[1][1]-300*uy],[g[0][0]+300*ux,g[0][1]+300*uy]],mirror)}" stroke="#795548" stroke-width="10" fill="none"/>`;
-  v.shapes.forEach(sh=>{
-    if(sh.k==="fill") s+=`<polygon points="${pts(sh.p,mirror)}" fill="${sh.c}" fill-opacity="${sh.a}" stroke="#111" stroke-width="1.2"/>`;
-    else s+=`<polyline points="${pts(sh.p,mirror)}" fill="none" stroke="${sh.c}" stroke-width="${sh.w*3}"/>`;
-  });
-  v.ic_lines.forEach(l=>{ s+=`<polyline points="${pts(l,mirror)}" fill="none" stroke="#d35400" stroke-width="3" stroke-dasharray="14 10"/>`; });
-  if(v.rc){ s+=`<circle cx="${X(v.rc[0])}" cy="${-v.rc[1]}" r="16" fill="#d35400"/>`+
-             `<text x="${X(v.rc[0])+28}" y="${-v.rc[1]-24}" font-family="JetBrains Mono,monospace" font-size="52" font-weight="700" fill="#d35400">RC ${v.rc_height} mm</text>`; }
-  $("v-"+axle).innerHTML=s;
-  $("r-"+axle).innerHTML=v.read.map(r=>`${r.side==="L"?"Left":"Right"}: travel ${r.travel>0?"+":""}${r.travel} mm · camber ${r.camber>0?"+":""}${r.camber}° · toe ${r.toe>0?"+":""}${r.toe}′`).join("<br>");
+function labelOf(f){ for(const g of VV.groups) for(const v of g.items) if(v.file===f) return v.label; return f; }
+function renderActive(){
+  const t=activeView;
+  if(POSE_VIEWS[t]) renderPose();
+  if(!dirty[t]) return;
+  dirty[t]=false;
+  if(t==="Curves") drawCharts(R);
+  else if(t==="Results") drawResults(R);
+  else if(t==="Engine & gearing") drawEngine(R.gearing);
+  else if(t==="Dampers & tyre") drawDampers(JSON.parse(web.dampers_tyre()));
+  else if(t==="Road"){ map.invalidateSize(); if(roadPoints) simRoad(false); }
+}
+function renderPose(){
+  const pv=POSE_VIEWS[activeView];
+  if(activeView==="Curves"){ moveMarkers(); return; }
+  if(!pv) return;
+  const p=JSON.parse(web.pose(+$("heave").value, +$("roll").value, +$("steer").value, JSON.stringify(pv)));
+  if(p.front) drawAxle("front", p.front, false);
+  if(p.rear) drawAxle("rear", p.rear, true);
+  if(p.side) drawWhole("side", p.side);
+  if(p.plan) drawWhole("plan", p.plan);
 }
 
+// ------------------------------------------------------------------ drawings (SVG, mm)
+function shapesSvg(shapes, T){
+  const P=a=>a.map(q=>{ const t=T(q); return t[0].toFixed(1)+","+t[1].toFixed(1); }).join(" ");
+  return shapes.map(sh=> sh.k==="fill"
+    ? `<polygon points="${P(sh.p)}" fill="${sh.c}" fill-opacity="${sh.a}" stroke="#111" stroke-width="0.6" vector-effect="non-scaling-stroke"/>`
+    : `<polyline points="${P(sh.p)}" fill="none" stroke="${sh.c}" stroke-width="${(sh.w*1.1).toFixed(1)}" vector-effect="non-scaling-stroke" stroke-linecap="round"/>`).join("");
+}
+function bbox(shapes, T, pad){
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  shapes.forEach(sh=>sh.p.forEach(q=>{ const t=T(q); x0=Math.min(x0,t[0]); x1=Math.max(x1,t[0]); y0=Math.min(y0,t[1]); y1=Math.max(y1,t[1]); }));
+  return `${(x0-pad).toFixed(0)} ${(y0-pad).toFixed(0)} ${(x1-x0+2*pad).toFixed(0)} ${(y1-y0+2*pad).toFixed(0)}`;
+}
+function gridSvg(x0,x1,y0,y1,step){ let s=""; for(let x=Math.ceil(x0/step)*step;x<=x1;x+=step) s+=`<line x1="${x}" x2="${x}" y1="${y0}" y2="${y1}" stroke="var(--line)" stroke-width="0.5" vector-effect="non-scaling-stroke"/>`;
+  for(let y=Math.ceil(y0/step)*step;y<=y1;y+=step) s+=`<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="0.5" vector-effect="non-scaling-stroke"/>`; return s; }
+function drawAxle(axle, v, mirror){
+  const T = q => [mirror?-q[0]:q[0], -q[1]];
+  let s=gridSvg(-1000,1000,-1500,150,250);
+  const g=v.ground, dx=g[0][0]-g[1][0], dy=g[0][1]-g[1][1], L=Math.hypot(dx,dy), ux=dx/L, uy=dy/L;
+  const gl=[[g[1][0]-300*ux,g[1][1]-300*uy],[g[0][0]+300*ux,g[0][1]+300*uy]].map(T);
+  s+=`<line x1="${gl[0][0]}" y1="${gl[0][1]}" x2="${gl[1][0]}" y2="${gl[1][1]}" stroke="#795548" stroke-width="3" vector-effect="non-scaling-stroke"/>`;
+  s+=shapesSvg(v.shapes, T);
+  v.ic_lines.forEach(l=>{ const a=T(l[0]), b=T(l[1]); s+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#d35400" stroke-width="1.4" stroke-dasharray="7 5" vector-effect="non-scaling-stroke"/>`; });
+  if(v.rc){ const c=T(v.rc); s+=`<circle cx="${c[0]}" cy="${c[1]}" r="16" fill="#d35400"/><text x="${c[0]+28}" y="${c[1]-24}" font-family="JetBrains Mono,monospace" font-size="52" font-weight="700" fill="#d35400">RC ${v.rc_height} mm</text>`; }
+  $("v-"+axle).innerHTML=s;
+  $("r-"+axle).innerHTML=v.read.map(r=>`${r.side==="L"?"Left ":"Right"}: travel ${sg(r.travel,0)} mm · camber ${sg(r.camber,2)}° · toe ${sg(r.toe,1)}′ · spring ${r.spring} mm`).join("<br>")+`<br>track (contact patches) ${v.track} mm`;
+  // plan view of this axle, front up, car's left on the left
+  const TP = q => [-q[0], -q[1]];
+  $("p-"+axle).setAttribute("viewBox", bbox(v.plan, TP, 60));
+  $("p-"+axle).innerHTML=shapesSvg(v.plan, TP);
+  if(axle==="rear" && R) $("p-rear-t").textContent=`(front up) · trailing-arm sweep ${R.sweep.toFixed(1)}°`;
+  // camber and roll centre vs travel, with the pose
+  if(R){ const c=R.curves[axle], b=R.curves_ref[axle], col=axle==="front"?"var(--accent)":"var(--rear)";
+    $("m-"+axle).innerHTML=chart("Camber [°] vs travel [mm]", c.travel, [{y:b.camber,c:"var(--ref)",w:3},{y:c.camber,c:col}], null, {dot:[v.travel_l, v.camber_l, col]})+
+      chart("Roll centre [mm] vs travel [mm]", c.travel, [{y:b.rc,c:"var(--ref)",w:3},{y:c.rc,c:col}], null, {vline:v.travel_l})+
+      `<div class="legend"><i style="background:var(--ref)"></i>car as is<i style="background:${col}"></i>this setup</div>`; }
+}
+const sg=(x,n)=>(x>0?"+":"")+(+x).toFixed(n);
+function drawWhole(view, v){
+  const T = q => [-q[0], -q[1]];
+  let s = view==="side" ? gridSvg(-900,3700,-1500,100,250) : gridSvg(-900,3700,-1000,1000,250);
+  if(view==="side") s+=`<line x1="-950" x2="3750" y1="${-v.ground_z}" y2="${-v.ground_z}" stroke="#795548" stroke-width="3" vector-effect="non-scaling-stroke"/>`;
+  else s+=`<line x1="-950" x2="3750" y1="0" y2="0" stroke="var(--muted)" stroke-width="0.8" stroke-dasharray="6 6" vector-effect="non-scaling-stroke"/>`;
+  s+=shapesSvg(v.shapes, T);
+  $("v-"+view).innerHTML=s;
+}
+
+// ------------------------------------------------------------------ charts
 const GEAR_COL=["#1b9e77","#d95f02","#7570b3","#e7298a","#b8860b"];
 const CHART_SCALES={};
+let chartSeq=0;
 function chart(title, xs, series, xticks, opt){
   opt=opt||{};
   const W=320,H=190,P={l:42,r:8,t:8,b:26};
-  const all=series.flatMap(s=>s.y), lo=Math.min(...all), hi=Math.max(...all), pad=(hi-lo)*0.08||1;
+  const all=series.flatMap(s=>s.band?s.band.flat():s.y).filter(v=>v!==null&&isFinite(v)), lo=Math.min(...all), hi=Math.max(...all), pad=(hi-lo)*0.08||1;
   const y0=opt.ymin!==undefined?opt.ymin:lo-pad, y1=opt.ymax!==undefined?opt.ymax:hi+pad, x0=opt.xmin!==undefined?opt.xmin:xs[0], x1=opt.xmax!==undefined?opt.xmax:xs[xs.length-1];
   const sx=x=>P.l+(x-x0)/(x1-x0)*(W-P.l-P.r), sy=y=>H-P.b-(y-y0)/(y1-y0)*(H-P.t-P.b);
-  if(opt.id) CHART_SCALES[opt.id]={x0,x1,l:P.l,r:P.r,t:P.t,b:P.b,W,H,y0,y1};
-  let s=`<svg ${opt.id?'id="'+opt.id+'"':''} viewBox="0 0 ${W} ${H}" font-family="JetBrains Mono,monospace" font-size="9" fill="currentColor">`;
+  const id=opt.id||("c"+(chartSeq++));
+  CHART_SCALES[id]={x0,x1,l:P.l,r:P.r,t:P.t,b:P.b,W,H,y0,y1};
+  let s=`<svg id="${id}" viewBox="0 0 ${W} ${H}" font-family="JetBrains Mono,monospace" font-size="9" fill="currentColor">`;
   const yt=opt.yticks||[0,1,2,3,4].map(i=>y0+(y1-y0)*i/4);
   yt.forEach(yv=>{ const yy=sy(yv); s+=`<line x1="${P.l}" x2="${W-P.r}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${P.l-4}" y="${yy+3}" text-anchor="end" fill="var(--muted)">${opt.yticks?yv:yv.toFixed(Math.abs(y1-y0)<5?2:0)}</text>`; });
   (xticks||[-80,-40,0,40,80]).forEach(xv=>{ s+=`<text x="${sx(xv)}" y="${H-10}" text-anchor="middle" fill="var(--muted)">${xv}</text>`; });
   if(!xticks) s+=`<line x1="${sx(0)}" x2="${sx(0)}" y1="${P.t}" y2="${H-P.b}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
+  if(opt.zero && y0<0 && y1>0) s+=`<line x1="${P.l}" x2="${W-P.r}" y1="${sy(0)}" y2="${sy(0)}" stroke="var(--muted)" stroke-width="0.6"/>`;
   series.forEach(se=>{
     const X=se.x||xs;
+    if(se.band){ const top=X.map((x,i)=>sx(x).toFixed(1)+","+sy(se.band[1][i]).toFixed(1)), bot=X.map((x,i)=>sx(x).toFixed(1)+","+sy(se.band[0][i]).toFixed(1)).reverse();
+      s+=`<polygon points="${top.concat(bot).join(" ")}" fill="${se.c}" opacity="0.35"/>`; return; }
     if(se.cols){ for(let i=0;i<X.length-1;i++){        // per-segment colours (step line, e.g. gear)
         s+=`<line x1="${sx(X[i]).toFixed(1)}" x2="${sx(X[i+1]).toFixed(1)}" y1="${sy(se.y[i]).toFixed(1)}" y2="${sy(se.y[i]).toFixed(1)}" stroke="${se.cols[i]}" stroke-width="${se.w||3}"/>`;
         if(se.y[i+1]!==se.y[i]) s+=`<line x1="${sx(X[i+1]).toFixed(1)}" x2="${sx(X[i+1]).toFixed(1)}" y1="${sy(se.y[i]).toFixed(1)}" y2="${sy(se.y[i+1]).toFixed(1)}" stroke="var(--muted)" stroke-width="0.6"/>`; } }
@@ -255,48 +485,77 @@ function chart(title, xs, series, xticks, opt){
   });
   if(opt.ribbon){ const X=xs, yb=H-P.b-6;                 // thin band coloured by gear along the bottom
     for(let i=0;i<X.length-1;i++) s+=`<rect x="${sx(X[i]).toFixed(1)}" y="${yb}" width="${Math.max(sx(X[i+1])-sx(X[i]),0.5).toFixed(1)}" height="6" fill="${opt.ribbon[i]}"/>`; }
-  if(opt.id) s+=`<g id="${opt.id}-cur"></g>`;
+  s+=`<g id="${id}-cur">`;
+  if(opt.vline!==undefined) s+=`<line x1="${sx(opt.vline)}" x2="${sx(opt.vline)}" y1="${P.t}" y2="${H-P.b}" stroke="var(--muted)" stroke-width="0.8" stroke-dasharray="2 2"/>`;
+  if(opt.dot) s+=`<circle cx="${sx(opt.dot[0])}" cy="${sy(opt.dot[1])}" r="3.5" fill="${opt.dot[2]}"/>`;
+  s+=`</g>`;
   return `<div class="chart"><div class="t">${title}</div>${s}</svg>${opt.legend||""}</div>`;
 }
+function markX(id, x){ const k=CHART_SCALES[id], g=$(id+"-cur"); if(!k||!g) return;
+  const px=k.l+(x-k.x0)/(k.x1-k.x0)*(k.W-k.l-k.r);
+  g.innerHTML=`<line x1="${px}" x2="${px}" y1="${k.t}" y2="${k.H-k.b}" stroke="var(--muted)" stroke-width="0.8" stroke-dasharray="2 2"/>`; }
+const CURVES=[["camber","Camber [°]"],["toe","Toe [′, + in]"],["rc","Roll centre [mm]"],["mr","Spring motion ratio"],["track","Half-track change [mm]"],["wcx","Wheel centre x shift [mm]"]];
 function drawCharts(r){
-  const c=r.curves, b=r.curves_ref, out=[];
-  [["camber","Camber [°]"],["toe","Toe [′, + in]"],["rc","Roll centre height [mm]"]].forEach(([k,t])=>{
-    out.push(chart(t+" vs travel [mm]", c.front.travel, [
-      {y:b.front[k],c:"var(--ref)",w:3},{y:b.rear[k],c:"var(--ref)",w:3},
-      {y:c.front[k],c:"var(--accent)"},{y:c.rear[k],c:"#2c5d8a"}]));
-  });
+  const out=[];
+  [["front","Front","var(--accent)"],["rear","Rear","var(--rear)"]].forEach(([a,A,col])=>{
+    CURVES.forEach(([k,t])=>out.push(chart(`${A}: ${t}`, r.curves[a].travel, [{y:r.curves_ref[a][k],c:"var(--ref)",w:3},{y:r.curves[a][k],c:col}], null, {id:`cv-${a}-${k}`, vline:+$("heave").value}))); });
   $("charts").innerHTML=out.join("");
 }
+function moveMarkers(){ const h=+$("heave").value; ["front","rear"].forEach(a=>CURVES.forEach(([k])=>markX(`cv-${a}-${k}`, h))); }
 function drawResults(r){
   let h="<tr><th>Quantity</th><th>Car as is</th><th>This setup</th><th>Change</th></tr>";
-  Object.keys(r.results).forEach(k=>{
-    const a=r.baseline[k], b=r.results[k], d=b-a, n=Math.abs(a)>=100?0:Math.abs(a)>=10?1:2, bt=(r.better||{})[k]||0;
-    const cls = Math.abs(d)<1e-6||!bt ? "" : (d*bt>0?"pos":"neg");
-    h+=`<tr><td>${k}</td><td>${a.toFixed(n)}</td><td>${b.toFixed(n)}</td><td class="${cls}">${Math.abs(d)<1e-6?"–":(d>0?"+":"")+d.toFixed(n)}</td></tr>`;
+  r.results.forEach(g=>{
+    h+=`<tr class="grp"><td colspan="4">${g.group}</td></tr>`;
+    g.rows.forEach(([k,a,b,bt])=>{
+      if(a===null||b===null){ h+=`<tr><td>${k}</td><td>–</td><td>–</td><td></td></tr>`; return; }
+      const d=b-a, n=Math.abs(a)>=100?0:Math.abs(a)>=10?1:Math.abs(a)>=1?2:3, same=Math.abs(d)<0.5*Math.pow(10,-n);
+      const cls = same ? "" : bt ? (d*bt>0?"pos":"neg") : "chgv";
+      h+=`<tr class="${same?"":"chg"}"><td>${k}</td><td>${a.toFixed(n)}</td><td>${b.toFixed(n)}</td><td class="${cls}">${same?"–":(d>0?"+":"")+d.toFixed(n)}</td></tr>`;
+    });
   });
   $("results").innerHTML=h;
 }
+function drawDampers(d){
+  const out=[];
+  ["front","rear"].forEach(a=>{ const x=d[a];
+    out.push(chart(`${a==="front"?"Front":"Rear"} damper: ${x.model} — force [N] vs velocity [m/s] (+ rebound)`, x.v,
+      [{band:[x.soft,x.hard],c:"var(--ref)"},{y:x.reb,c:"var(--accent)",w:2.5},{x:x.v.map(v=>-v),y:x.comp.map(f=>-f),c:"#e67e22",w:2.5}],
+      [-0.5,-0.25,0,0.25,0.5], {xmin:-Math.max(...x.v), xmax:Math.max(...x.v), zero:true,
+      legend:`<div class="legend"><i style="background:var(--ref);height:8px;opacity:.5"></i>adjust range<i style="background:var(--accent)"></i>rebound (setting)<i style="background:#e67e22"></i>compression</div>`})); });
+  const t=d.tyre;
+  out.push(chart("Tyre lateral force Fy [kN] vs slip angle [°]", t.slip,
+    t.cur.flatMap((y,i)=>[{y:t.ref[i],c:"var(--ref)",w:2.5,dash:i!==1},{y,c:"var(--accent)",dash:i!==1}]), [0,5,10,15], {ymin:0,
+    legend:`<div class="legend">Fz = ${t.loads.join(" / ")} N (dashed: half and 1.5× the static front load)</div>`}));
+  const h=d.handling;
+  out.push(chart("Handling diagram: steer beyond Ackermann [°] vs lateral g", h.cur.ay, [{x:h.ref.ay,y:h.ref.delta,c:"var(--ref)",w:3},{y:h.cur.delta,c:"var(--accent)"}],
+    [0,0.2,0.4,0.6,0.8], {xmin:0, xmax:Math.max(...h.cur.ay, ...h.ref.ay)*1.02,
+    legend:`<div class="legend"><i style="background:var(--ref)"></i>car as is<i style="background:var(--accent)"></i>this setup · rising = understeer</div>`}));
+  $("dt-charts").innerHTML=out.join("");
+}
 // ------------------------------------------------------------------ engine & gearing
-function drawGearing(G){
-  const c=G.current, b=G.ref;
-  // compact table under the gearbox / final drive choice
-  let h=`<table class="gtab"><tr><td class="cap" colspan="5">${c.gearbox} · final drive ${c.final_drive.toFixed(2)} · tyre ${c.tyre_circumference_m.toFixed(2)} m · limit ${c.rev_limit.toFixed(0)} rpm</td></tr>`+
-        `<tr><th>gear</th><th>ratio</th><th>overall</th><th>km/h per 1000</th><th>max km/h</th></tr>`;
+function drawGearTable(c, el, big){
+  if(!el) return;
+  let h=`<table class="gtab${big?" big":""}"><tr><td class="cap" colspan="5">${c.gearbox} · final drive ${c.final_drive.toFixed(2)} · tyre ${c.tyre_circumference_m.toFixed(2)} m · limit ${c.rev_limit.toFixed(0)} rpm</td></tr>`+
+        `<tr><th>gear</th><th>ratio</th><th>overall</th><th>km/h per 1000 rpm</th><th>km/h at ${c.rev_limit.toFixed(0)} rpm</th></tr>`;
   c.rows.forEach(r=>{ h+=`<tr><td><span class="gsw" style="background:${GEAR_COL[(r.gear-1)%5]}"></span>${r.gear}</td><td>${r.ratio.toFixed(3)}</td><td>${r.overall.toFixed(2)}</td><td>${r.kmh_per_1000.toFixed(1)}</td><td>${r.v_at_limit.toFixed(0)}</td></tr>`; });
-  $("gear-table").innerHTML=h+"</table>";
-  // engine curves (current vs as is) and speed per gear
-  const rt=[1000,2000,3000,4000,5000,6000];
-  const tq=chart("Torque [Nm] vs rpm", c.rpm, [{x:b.rpm,y:b.torque_Nm,c:"var(--ref)",w:3},{y:c.torque_Nm,c:"var(--accent)"}], rt, {xmin:1000,xmax:Math.max(c.rev_limit,b.rev_limit)});
+  el.innerHTML=h+"</table>";
+}
+function drawEngine(G){
+  const c=G.current, b=G.ref;
+  const rt=[1000,2000,3000,4000,5000,6000,7000].filter(x=>x<=Math.max(c.rev_limit,b.rev_limit)+200);
+  const tq=chart("Full-load torque [Nm] vs rpm", c.rpm, [{x:b.rpm,y:b.torque_Nm,c:"var(--ref)",w:3},{y:c.torque_Nm,c:"var(--accent)"}], rt, {xmin:1000,xmax:Math.max(c.rev_limit,b.rev_limit)});
   const pw=chart("Power [PS] vs rpm", c.rpm, [{x:b.rpm,y:b.power_PS,c:"var(--ref)",w:3},{y:c.power_PS,c:"var(--accent)"}], rt, {ymin:0,xmin:1000,xmax:Math.max(c.rev_limit,b.rev_limit)});
   const xs=[1000,c.rev_limit], ser=c.rows.map(r=>({x:xs,y:xs.map(n=>r.kmh_per_1000*n/1000),c:GEAR_COL[(r.gear-1)%5],w:2.5}));
   const gl=`<div class="legend">${c.rows.map(r=>`<span class="gsw" style="background:${GEAR_COL[(r.gear-1)%5]}"></span>${r.gear}`).join(" &nbsp; ")}</div>`;
   const sp=chart("Speed [km/h] in each gear vs rpm", xs, ser, rt, {ymin:0,xmin:1000,xmax:c.rev_limit,legend:gl});
   $("eng-charts").innerHTML=tq+pw+sp;
+  drawGearTable(c, $("eng-table"), true);
   const conf={A:"factory data",B:"good secondary source",C:"estimate with a stated method",D:"placeholder"}[c.torque_conf]||"";
   $("eng-note").textContent=`Engine: ${c.engine}. Full-load curve only (no part-throttle map); confidence ${c.torque_conf} = ${conf}. ${c.torque_note}`;
 }
 
 // ------------------------------------------------------------------ road
+let keyLayer=null, lastHover=0;
 let map=null, routeLayer, wpLayer, waypoints=[], drawing=false, roadPoints=null, roadLabel="", lastRoad=null, legendCtl=null;
 function initMap(){
   map=L.map("map").setView([37.858,23.789],14);
@@ -306,6 +565,10 @@ function initMap(){
     L.circleMarker(e.latlng,{radius:6,color:"#c25a16",weight:3}).addTo(wpLayer);
     $("road-status").textContent=`${waypoints.length} point(s). Click more, then “Route & simulate”.`; });
   fillPresets();
+  keyLayer=L.layerGroup().addTo(map);
+  $("show-keys").addEventListener("change",()=>{ if(lastRoad){ drawKeys(lastRoad); zoomBox(lastHover); } });
+  $("road-line").addEventListener("change",()=>simRoad(false));
+  $("road-width").addEventListener("change",()=>simRoad(false));
   legendCtl=L.control({position:"bottomright"}); legendCtl.onAdd=()=>{ const d=L.DomUtil.create("div","maplegend"); d.id="maplegend"; return d; }; legendCtl.addTo(map);
   $("road-colour").addEventListener("change",()=>{ if(lastRoad) drawRoad(lastRoad,false); });
   $("road-save").addEventListener("click", saveRoute);
@@ -384,7 +647,7 @@ async function loadRouteFile(e){
 }
 function simRoad(fit){
   if(!roadPoints||!web) return;
-  let r; try{ r=JSON.parse(web.road_sim(roadPoints, +$("road-v0").value||0)); }catch(e){ $("road-status").textContent="Simulation failed: "+e.message.split("\n").slice(-2)[0]; return; }
+  let r; try{ r=JSON.parse(web.road_sim(roadPoints, +$("road-v0").value||0, $("road-line").value, +$("road-width").value||6)); }catch(e){ $("road-status").textContent="Simulation failed: "+e.message.split("\n").slice(-2)[0]; return; }
   lastRoad=r; drawRoad(r, fit);
 }
 function drawRoad(r, fit){
@@ -398,7 +661,10 @@ function drawRoad(r, fit){
     : `<b>Speed [km/h]</b><div class="bar" style="background:linear-gradient(90deg,${[0,.125,.25,.375,.5,.625,.75,.875,1].map(t=>speedColor(t)).join(",")})"></div><div class="ends"><span>${vmin.toFixed(0)}</span><span>${((vmin+vmax)/2).toFixed(0)}</span><span>${vmax.toFixed(0)}</span></div>`;
   L.circleMarker(r.latlon[0],{radius:7,color:"#1b7f3b",fillOpacity:1}).bindTooltip("start").addTo(routeLayer);
   L.circleMarker(r.latlon[r.latlon.length-1],{radius:7,color:"#111",fillOpacity:1}).bindTooltip("finish").addTo(routeLayer);
-  if(fit) map.fitBounds(L.latLngBounds(r.latlon),{padding:[20,20]});
+  if(fit){ map.invalidateSize(); map.fitBounds(L.latLngBounds(r.latlon),{padding:[20,20]}); }
+  drawKeys(r); zoomBox(Math.min(lastHover, r.s.length-1));
+  $("road-lines").innerHTML="Lines on a "+r.width+" m road (this setup / car as is): "+Object.entries(r.lines).map(([k,v])=>
+    `<span style="color:${LINE_COL[k]}">●</span> ${k===r.line?"<b>":""}${v.label}: ${v.time.toFixed(1)} s${k===r.line?"</b>":""} <span style="color:var(--muted)">(${v.time_ref.toFixed(1)})</span>`).join(" &nbsp;·&nbsp; ");
   const d=r.time-r.time_ref;
   $("road-summary").innerHTML=`<b>${r.time.toFixed(1)} s</b> (car as is ${r.time_ref.toFixed(1)} s, ${d>=0?"+":""}${d.toFixed(1)} s) · ${(r.length/1000).toFixed(2)} km · `+
     `average ${r.avg.toFixed(1)} km/h · top ${r.vmax.toFixed(0)} km/h · climb ${r.climb>=0?"+":""}${r.climb.toFixed(0)} m · gears used ${r.gears_used.join(", ")} · tightest bend ≈ ${r.min_radius.toFixed(0)} m radius<br>`+
@@ -416,6 +682,49 @@ function drawRoad(r, fit){
       const sv=k.x0+(px-k.l)/(k.W-k.l-k.r)*(k.x1-k.x0); let i=0, n=r.s.length;
       while(i<n-1 && r.s[i+1]<sv) i++; roadHover(i); }); });
 }
+const LINE_COL={centre:"#7f8c8d",lane:"#2c7fb8",full:"#d7301f"};
+function zoomBox(i){
+  const r=lastRoad, G=r&&r.geo, svgEl=$("lp-svg"); if(!G||!svgEl) return;
+  lastHover=i;
+  const f=r.s[i]/r.s[r.s.length-1], sc=f*G.s[G.s.length-1]; let k=0; while(k<G.s.length-1 && G.s[k+1]<sc) k++;
+  const c=G.c[k], k2=Math.min(k+1,G.c.length-1), k1=Math.max(k-1,0);
+  const hx=G.c[k2][0]-G.c[k1][0], hy=G.c[k2][1]-G.c[k1][1], hl=Math.hypot(hx,hy)||1, ux=hx/hl, uy=hy/hl;
+  const R=45, S=150/R;
+  const P=p=>{ const dx=p[0]-c[0], dy=p[1]-c[1]; const along=dx*ux+dy*uy, left=-dx*uy+dy*ux; return [150-left*S,150-along*S]; };
+  const inWin=q=>q[0]>-10&&q[0]<310&&q[1]>-10&&q[1]<310;
+  const near=a=>{ const out=[]; for(let j=Math.max(0,k-30);j<=Math.min(a.length-1,k+30);j++) out.push(P(a[j])); return out; };
+  const pl=a=>a.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
+  const L1=near(G.left), R1=near(G.right);
+  let s=`<rect width="300" height="300" fill="#cfd8c4"/><polygon points="${pl(L1.concat(R1.slice().reverse()))}" fill="#8a8f93"/>`+
+    `<polyline points="${pl(L1)}" fill="none" stroke="#fff" stroke-width="2"/><polyline points="${pl(R1)}" fill="none" stroke="#fff" stroke-width="2"/>`+
+    `<polyline points="${pl(near(G.c))}" fill="none" stroke="#f4f4f4" stroke-width="1.2" stroke-dasharray="6 6"/>`;
+  Object.entries(G.lines).forEach(([n,a])=>{ if(n==="centre") return;
+    s+=`<polyline points="${pl(near(a))}" fill="none" stroke="${LINE_COL[n]}" stroke-width="${n===r.line?4:2}" opacity="${n===r.line?1:.7}"/>`; });
+  if($("show-keys").checked){
+    r.brakes.forEach(b=>{ const q=P(b.xy); if(inWin(q)) s+=`<rect x="${q[0]-5}" y="${q[1]-5}" width="10" height="10" fill="#c0392b" stroke="#fff"/><text x="${q[0]+8}" y="${q[1]+4}" font-size="10" font-weight="700" fill="#7b1d14">BRAKE ${b.v_in.toFixed(0)}→${b.v_min.toFixed(0)}</text>`;
+      const qa=P(b.apex_xy); if(inWin(qa)) s+=`<circle cx="${qa[0]}" cy="${qa[1]}" r="4" fill="none" stroke="#7b1d14" stroke-width="2"/><text x="${qa[0]+7}" y="${qa[1]+12}" font-size="9" fill="#7b1d14">apex ${b.v_min.toFixed(0)}</text>`; });
+    r.shifts.forEach(x=>{ const q=P(x.xy); if(!inWin(q)) return; const up=x.to>x.from, col=GEAR_COL[(x.to-1)%5];
+      s+=`<path d="M${q[0]-6},${q[1]+(up?4:-4)} L${q[0]+6},${q[1]+(up?4:-4)} L${q[0]},${q[1]+(up?-7:7)} Z" fill="${col}" stroke="#fff"/>`+
+         `<text x="${q[0]-10}" y="${q[1]+4}" text-anchor="end" font-size="10" font-weight="700" fill="#222">${x.from}→${x.to}</text>`; });
+  }
+  Object.entries(G.lines).forEach(([n,a])=>{ const q=P(a[k]); s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${n===r.line?6:3.5}" fill="${LINE_COL[n]}" stroke="#fff" stroke-width="1.5"/>`; });
+  s+=`<text x="6" y="14" font-size="11" fill="#222">▲ driving direction</text><line x1="10" y1="290" x2="${10+10*S}" y2="290" stroke="#222" stroke-width="2"/><text x="${14+10*S}" y="293" font-size="10" fill="#222">10 m</text>`;
+  svgEl.innerHTML=s;
+  $("lp-legend").innerHTML=Object.entries(LINE_COL).map(([n,col])=>`<span><i style="background:${col}"></i>${{centre:"centre",lane:"own lane",full:"racing"}[n]}</span>`).join("")+
+    `<span>▲▼ shift</span><span style="color:#c0392b">■ brake</span>`;
+  // what is coming next on the chosen line
+  const sNow=r.s[i], nb=r.brakes.find(b=>b.s>=sNow-1), ns=r.shifts.find(x=>x.s>=sNow-1);
+  $("lp-info").innerHTML=`<b>${(sNow/1000).toFixed(2)} km</b> · ${r.v[i].toFixed(0)} km/h · gear ${r.gear[i]} · ${r.rpm[i].toFixed(0)} rpm<br>`+
+    (ns?`next shift: <b>${ns.from}→${ns.to}</b> in ${(ns.s-sNow).toFixed(0)} m at ${ns.v.toFixed(0)} km/h<br>`:"")+
+    (nb?`next braking: in <b>${(nb.s-sNow).toFixed(0)} m</b>, ${nb.v_in.toFixed(0)} → ${nb.v_min.toFixed(0)} km/h (gear ${nb.gear} at the apex)`:"no more braking to the finish");
+}
+function drawKeys(r){
+  keyLayer.clearLayers(); if(!$("show-keys").checked) return;
+  r.brakes.forEach(b=>L.marker(b.latlon,{icon:L.divIcon({className:"",html:'<span style="display:block;width:9px;height:9px;background:#c0392b;border:1.5px solid #fff;box-shadow:0 0 2px #000"></span>',iconSize:[9,9],iconAnchor:[5,5]})})
+    .bindTooltip(`brake at ${(b.s/1000).toFixed(2)} km: ${b.v_in.toFixed(0)} → ${b.v_min.toFixed(0)} km/h`).addTo(keyLayer));
+  r.shifts.forEach(x=>L.circleMarker(x.latlon,{radius:4,color:"#fff",weight:1,fillColor:GEAR_COL[(x.to-1)%5],fillOpacity:1})
+    .bindTooltip(`${x.to>x.from?"upshift":"downshift"} ${x.from}→${x.to} at ${x.v.toFixed(0)} km/h (${(x.s/1000).toFixed(2)} km)`).addTo(keyLayer));
+}
 let hoverMarker=null;
 function roadHover(i){
   const r=lastRoad; if(!r) return; i=Math.max(0,Math.min(i,r.s.length-1));
@@ -423,10 +732,12 @@ function roadHover(i){
     `<span class="gsw" style="background:${GEAR_COL[(r.gear[i]-1)%5]}"></span>gear ${r.gear[i]} · ${r.rpm[i].toFixed(0)} rpm · ${r.elev[i].toFixed(0)} m`;
   if(!hoverMarker) hoverMarker=L.circleMarker(r.latlon[i],{radius:8,color:"#111",weight:2,fillColor:"#fff",fillOpacity:1});
   hoverMarker.setLatLng(r.latlon[i]); if(!map.hasLayer(hoverMarker)) hoverMarker.addTo(map);
+  zoomBox(i);
   ["ch-speed","ch-gear"].forEach(id=>{ const k=CHART_SCALES[id], g=$(id+"-cur"); if(!k||!g) return;
     const x=k.l+(r.s[i]-k.x0)/(k.x1-k.x0)*(k.W-k.l-k.r);
     g.innerHTML=`<line x1="${x}" x2="${x}" y1="${k.t}" y2="${k.H-k.b}" stroke="var(--fg)" stroke-width="0.8" stroke-dasharray="3 2"/>`; });
 }
+
 boot();
 </script>
 </body>

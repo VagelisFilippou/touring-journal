@@ -176,6 +176,64 @@ class Vehicle:
             lim += " / inner wheel lift"
         return ay, lim
 
+    # ------------------------------------------------------------------------------------
+    # g-g envelope: lateral limit as a function of longitudinal acceleration (braking < 0 < drive)
+    def brake_balance_front(self):
+        """Front share of brake torque from the hardware (discs + calipers vs drums + wheel cylinders)."""
+        b = self.p.brakes
+        A_f = b.front_pistons_per_side * np.pi / 4 * b.front_piston_d ** 2
+        T_f = 2 * b.front_pad_mu * A_f * b.front_effective_radius             # per wheel, per unit pressure
+        T_r = b.rear_brake_factor * np.pi / 4 * b.rear_wheel_cyl_d ** 2 * b.rear_drum_diameter / 2
+        return T_f / (T_f + T_r)
+
+    def _mu_x(self, Fz):
+        L = self.tyre.t.longitudinal
+        return L.mu_x0 * (1 + L.dmu_x * (Fz - self.tyre.Fz0) / self.tyre.Fz0)
+
+    def _combined_margin(self, ay, ax, grid=np.linspace(-0.02, 0.30, 161)):
+        """min over axles of (lateral capacity − required) with longitudinal force ax·m on the tyres."""
+        lt, phi = self.load_transfer(ay)
+        Wf, Wr = self.static_axle_loads
+        dW = self.m * ax * self.h / self.L                                    # + accelerating -> rearward
+        W = {"front": Wf - dW, "rear": Wr + dW}
+        Fx = self.m * ax
+        bf = self._bf if hasattr(self, "_bf") else self.brake_balance_front()
+        self._bf = bf
+        Fx_ax = {"front": 0.0, "rear": Fx} if ax >= 0 else {"front": bf * Fx, "rear": (1 - bf) * Fx}
+        req = {"front": self.m * ay * self.b / self.L, "rear": self.m * ay * self.a / self.L}
+        out = np.inf
+        for name in ("front", "rear"):
+            axl = self.axles[name]
+            Fz_o, Fz_i, g_o, g_i, _ = self.axle_state(axl, ay, phi, lt[name]["total"], W[name])
+            if Fz_i <= 0 or W[name] <= 0:
+                return -1.0
+            fx = abs(Fx_ax[name]) / 2                                          # equal split (LSD / brakes)
+            k_o = 1 - (fx / (self._mu_x(Fz_o) * Fz_o)) ** 2
+            k_i = 1 - (fx / (self._mu_x(Fz_i) * Fz_i)) ** 2
+            if min(k_o, k_i) < 0:
+                return -1.0 - (fx / (self._mu_x(Fz_i) * Fz_i))
+            cap = (self.tyre.Fy(grid, Fz_o, g_o) * np.sqrt(k_o) + self.tyre.Fy(grid, Fz_i, g_i) * np.sqrt(k_i)).max()
+            out = min(out, cap - req[name])
+        return out
+
+    def ay_limit(self, ax):
+        if self._combined_margin(0.0, ax) < 0:
+            return 0.0
+        hi = 2.0 * G
+        while self._combined_margin(hi, ax) > 0 and hi < 4 * G:
+            hi *= 1.5
+        return brentq(lambda ay: self._combined_margin(ay, ax), 0.0, hi, xtol=2e-3)
+
+    def gg_envelope(self, n_side=8):
+        """(ax grid, ay limit) from full braking to full drive grip (tyre-limited; the engine limit is separate)."""
+        f = lambda ax: self._combined_margin(0.0, ax)
+        ax_max = brentq(f, 0.0, 2.0 * G, xtol=1e-3) if f(2.0 * G) < 0 else 2.0 * G
+        ax_min = brentq(f, -2.5 * G, 0.0, xtol=1e-3) if f(-2.5 * G) < 0 else -2.5 * G
+        axs = np.r_[np.linspace(ax_min, 0, n_side + 1)[:-1], np.linspace(0, ax_max, n_side + 1)]
+        ays = np.array([self.ay_limit(a) for a in axs])
+        ays[0] = ays[-1] = 0.0
+        return axs, ays
+
     def understeer_gradient(self, ay1=0.5, ay2=3.0):
         """deg of road-wheel steer per g (beyond Ackermann), linear range."""
         d1, d2 = self.solve(ay1)["delta_kin"], self.solve(ay2)["delta_kin"]

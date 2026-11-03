@@ -165,15 +165,49 @@ class MacPherson:
                 np.linalg.norm(X(self.TRO_up) - tri) - L_tr,
                 wc[2] - wc_z]
 
+    def _newton(self, x, args, tol=1e-11, max_it=25):
+        """Newton iterations with a reused (chord) Jacobian: along a sweep the Jacobian barely changes,
+        so it is only rebuilt when convergence slows. ~10x faster than scipy least_squares here."""
+        f = np.asarray(self._residual(x, *args))
+        J = getattr(self, "_J", None)
+        for it in range(max_it):
+            nf = np.max(np.abs(f))
+            if nf < tol:
+                return x, True
+            if J is None or it >= 3:
+                h = 1e-7
+                J = np.empty((4, 4))
+                for j in range(4):
+                    xp = x.copy()
+                    xp[j] += h
+                    J[:, j] = (np.asarray(self._residual(xp, *args)) - f) / h
+                self._J = J
+            try:
+                dx = np.linalg.solve(J, -f)
+            except np.linalg.LinAlgError:
+                return x, False
+            step = np.max(np.abs(dx))
+            if step > 0.2:
+                dx *= 0.2 / step
+            xn = x + dx
+            fn = np.asarray(self._residual(xn, *args))
+            if np.max(np.abs(fn)) > 0.7 * nf:                       # slow: refresh the Jacobian next time
+                J = None
+            x, f = xn, fn
+        return x, np.max(np.abs(f)) < 1e-9
+
     def solve(self, wc_z, L_tr=None, steer_shift=0.0, x0=None):
         L_tr = self.L_tr if L_tr is None else L_tr
         tri = self.TRI + np.r_[0, steer_shift, 0]
-        sol = least_squares(self._residual, self._x if x0 is None else x0,
-                            args=(wc_z, L_tr, tri), xtol=1e-12, ftol=1e-12)
-        if np.max(np.abs(sol.fun)) > 1e-7:
-            raise RuntimeError(f"MacPherson did not converge at wc_z={wc_z:.4f}")
-        self._x = sol.x
-        th, R, X = self._pose(sol.x)
+        args = (wc_z, L_tr, tri)
+        x, ok = self._newton(np.array(self._x if x0 is None else x0, float), args)
+        if not ok:                                                   # robust fallback
+            sol = least_squares(self._residual, self._x if x0 is None else x0, args=args, xtol=1e-12, ftol=1e-12)
+            if np.max(np.abs(sol.fun)) > 1e-7:
+                raise RuntimeError(f"MacPherson did not converge at wc_z={wc_z:.4f}")
+            x = sol.x
+        self._x = x
+        th, R, X = self._pose(x)
         a = R @ self.a0
         wc = X(self.H) - self.ET * a
         return dict(a=a, wc=wc, cp=contact_point(wc, a, self.r),
