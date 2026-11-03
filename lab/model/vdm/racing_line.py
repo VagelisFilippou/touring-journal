@@ -8,7 +8,8 @@ points, a bounded linear least-squares problem), within the allowed band:
   full   : the whole road width (closed road, e.g. a hillclimb)
 Minimum curvature is close to minimum time for a low-power car on a twisty road; it ignores braking
 points and late apexes. Road width is not in our road files yet (OSM 'width' tags are rare), so it is
-a parameter (default 6 m, a typical two-lane mountain road).
+a parameter (default 6 m, a typical two-lane mountain road); road files may give their own 'width'.
+On a closed circuit the problem wraps round the start/finish (periodic differences, no end conditions).
 """
 from __future__ import annotations
 
@@ -22,6 +23,14 @@ CAR_WIDTH = 1.59
 
 
 def _frame(track: Track, ds: float):
+    if track.closed:                                                  # periodic samples, end point excluded
+        n = max(int(round(track.s[-1] / ds)), 8)
+        ds = track.s[-1] / n
+        s = np.arange(n) * ds
+        x, y = np.interp(s, track.s, track.xy[:, 0]), np.interp(s, track.s, track.xy[:, 1])
+        tx, ty = (np.roll(x, -1) - np.roll(x, 1)) / (2 * ds), (np.roll(y, -1) - np.roll(y, 1)) / (2 * ds)
+        nrm = np.hypot(tx, ty)
+        return s, np.c_[x, y], np.c_[-ty / nrm, tx / nrm]
     s = np.arange(0, track.s[-1], ds)
     x, y = np.interp(s, track.s, track.xy[:, 0]), np.interp(s, track.s, track.xy[:, 1])
     tx, ty = np.gradient(x, ds), np.gradient(y, ds)
@@ -47,6 +56,14 @@ def offsets(track: Track, kind: str, width: float = 6.0, margin: float = 0.3, ds
         return np.full_like(track.s, lo)
     s, C, N = _frame(track, ds)
     n = len(s)
+    if track.closed:                                                  # periodic: second / first differences wrap round
+        idx = np.arange(n)
+        D2 = sparse.csr_matrix((np.tile([1.0, -2.0, 1.0], n), (np.repeat(idx, 3), np.c_[(idx - 1) % n, idx, (idx + 1) % n].ravel())), shape=(n, n))
+        D1 = sparse.csr_matrix((np.tile([-1.0, 1.0], n), (np.repeat(idx, 2), np.c_[idx, (idx + 1) % n].ravel())), shape=(n, n))
+        A = sparse.vstack([D2 @ sparse.diags(N[:, 0]), D2 @ sparse.diags(N[:, 1]), smooth * D1]).tocsr()
+        b = -np.r_[D2 @ C[:, 0], D2 @ C[:, 1], np.zeros(n)]
+        x = _fista(A, b, lo, hi)
+        return np.interp(track.s, s, x, period=s[-1] + (s[1] - s[0]))
     D2 = sparse.diags([np.ones(n - 2), -2 * np.ones(n - 2), np.ones(n - 2)], [0, 1, 2], shape=(n - 2, n))
     D1 = sparse.diags([-np.ones(n - 1), np.ones(n - 1)], [0, 1], shape=(n - 1, n))
     # ends: keep the offset steady over the first/last ~20 m (start line / flying finish), otherwise the free
@@ -88,6 +105,12 @@ def _to_latlon(track: Track, xy):
 
 
 def normals(track: Track):
+    if track.closed:                                                  # wrap round (last point = first point)
+        x, y, d = track.xy[:-1, 0], track.xy[:-1, 1], track.s[1] - track.s[0]
+        tx, ty = (np.roll(x, -1) - np.roll(x, 1)) / (2 * d), (np.roll(y, -1) - np.roll(y, 1)) / (2 * d)
+        tx, ty = np.r_[tx, tx[:1]], np.r_[ty, ty[:1]]
+        nrm = np.hypot(tx, ty)
+        return np.c_[-ty / nrm, tx / nrm]
     tx, ty = np.gradient(track.xy[:, 0], track.s), np.gradient(track.xy[:, 1], track.s)
     nrm = np.hypot(tx, ty)
     return np.c_[-ty / nrm, tx / nrm]
@@ -101,7 +124,7 @@ def line_track(track: Track, kind: str, width: float = 6.0, margin: float = 0.3)
     xy = track.xy + normals(track) * n[:, None]
     ll = _to_latlon(track, xy)
     pts = np.c_[ll, track.elev]
-    tr = build_track(pts, name=f"{track.name}:{kind}", smooth_m=2.0)    # already smooth; just re-parameterise
+    tr = build_track(pts, name=f"{track.name}:{kind}", smooth_m=2.0, closed=track.closed)    # already smooth; re-parameterise
     return tr, n, xy
 
 

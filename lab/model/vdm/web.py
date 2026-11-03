@@ -7,6 +7,7 @@ JS calls (all return JSON strings):
   compute(variants_json, values_json)  -> results, curves, gearing (car as is vs this setup)
   pose(heave_mm, roll_deg, steer_mm, views_json) -> drawing data for the requested views
   dampers_tyre()                       -> damper, tyre and handling-diagram curves (on demand)
+  brakes_session(points_json, line, width, laps, flying) -> brake hydraulics, temperatures and fade, lap after lap
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ import json
 import numpy as np
 
 from . import drawing as D, kinematics as K, lapsim as LS, params, powertrain as PT, racing_line as RLN, roads as RD, steady_state as S
-from . import setup_ui as SU
+from . import brakes as BR, setup_ui as SU
 
 G = 9.80665
 MM = 1e3
@@ -128,8 +129,9 @@ def parse_road(text):
     pts = d.get("points") if isinstance(d, dict) else d
     if not pts or len(pts[0]) < 3:
         raise ValueError("no [lat, lon, elevation] points found")
-    label = (d.get("meta") or {}).get("label", "") if isinstance(d, dict) else ""
-    return json.dumps({"label": label, "points": [[float(a), float(b), float(c)] for a, b, c, *_ in pts]})
+    meta = (d.get("meta") or {}) if isinstance(d, dict) else {}
+    return json.dumps({"label": meta.get("label", ""), "width": meta.get("width"),
+                       "points": [[float(a), float(b), float(c)] for a, b, c, *_ in pts]})
 
 
 def road_points(name):
@@ -151,14 +153,17 @@ def _road_lines(points_json, width):
     return c[key]
 
 
-def road_sim(points_json, v0_kmh=0.0, line="centre", width=6.0):
-    """Lap-time sim of the current setup on a road given as [[lat, lon, elevation], ...], along the chosen line."""
+def road_sim(points_json, v0_kmh=0.0, line="centre", width=6.0, flying=True):
+    """Lap-time sim of the current setup on a road given as [[lat, lon, elevation], ...], along the chosen line.
+    Closed circuits run as a flying lap when `flying` (start speed = finish speed); otherwise from v0."""
     m, ref = _state["model"], _state["ref"]
     base, lines, ref_memo = _road_lines(points_json, width)
+    fly = bool(flying) and base.closed
+    run = lambda lap, t: lap.run_road(t, v0=v0_kmh / 3.6, flying=fly)
     tr = lines[line][0]
-    r = m.lap.run(tr, v0=v0_kmh / 3.6)
-    times = {k: {"label": RLN.LINES[k], "time": m.lap.run(lt[0], v0=v0_kmh / 3.6).time if k != line else r.time,
-                 "time_ref": ref_memo.setdefault((k, v0_kmh), ref.lap.run(lt[0], v0=v0_kmh / 3.6).time)} for k, lt in lines.items()}
+    r = run(m.lap, tr)
+    times = {k: {"label": RLN.LINES[k], "time": run(m.lap, lt[0]).time if k != line else r.time,
+                 "time_ref": ref_memo.setdefault((k, v0_kmh, fly), run(ref.lap, lt[0]).time)} for k, lt in lines.items()}
     step = max(1, int(round(10.0 / (tr.s[1] - tr.s[0]))))           # ~10 m spacing for the browser
     idx = np.r_[np.arange(0, len(tr.s), step), len(tr.s) - 1]
     share = {k: float((r.limit == k).mean()) for k in ("power", "traction", "corner", "brake")}
@@ -169,12 +174,32 @@ def road_sim(points_json, v0_kmh=0.0, line="centre", width=6.0):
            "lines": {k: lt[2][g].round(2).tolist() for k, lt in lines.items()}, "s": base.s[g].round(1).tolist()}
     shifts, brakes = RLN.key_points(tr, r, base)
     return json.dumps({"time": r.time, "time_ref": times[line]["time_ref"], "line": line, "width": width, "lines": times, "geo": geo,
+                       "closed": bool(base.closed), "flying": fly, "v_start": float(r.v[0] * 3.6),
                        "shifts": shifts, "brakes": brakes,
                        "length": tr.length, "vmax": float(r.v.max() * 3.6), "avg": tr.length / r.time * 3.6,
                        "climb": float(tr.elev[-1] - tr.elev[0]), "min_radius": float(1 / max(abs(tr.kappa).max(), 1e-6)),
                        "s": tr.s[idx].round(1).tolist(), "v": (r.v[idx] * 3.6).round(1).tolist(), "elev": tr.elev[idx].round(1).tolist(),
                        "gear": r.gear[idx].tolist(), "rpm": r.rpm[idx].round(0).tolist(), "latlon": tr.latlon[idx].round(6).tolist(), "share": share,
                        "gears_used": sorted(set(int(g) for g in r.gear))})
+
+
+def brakes_session(points_json, line="centre", width=6.0, laps=3, flying=True, v0_kmh=0.0):
+    """Brake temperatures and fade on a road / circuit for the current setup (open roads: one run)."""
+    m = _state["model"]
+    br = BR.Brakes(m.p, m.lap.m, m.lap.pt.r)
+    hyd = {k: (None if v is None else float(v)) for k, v in BR.hydraulics_table(br, m.lap).items()}
+    if not points_json:
+        return json.dumps({"hyd": hyd, "laps": [], "series": None})
+    base, lines, _ = _road_lines(points_json, width)
+    tr = lines[line][0]
+    ses = BR.run_session(m.lap, br, tr, laps=int(laps), flying=bool(flying), v0=v0_kmh / 3.6)
+    step = max(1, int(round(20.0 / (tr.s[1] - tr.s[0]))))                 # ~20 m spacing for the browser
+    idx = np.r_[np.arange(0, len(ses.s), step), len(ses.s) - 1]
+    no_fade = m.lap.run_road(tr, v0=v0_kmh / 3.6, flying=bool(flying) and tr.closed).time
+    return json.dumps({"hyd": hyd, "laps": ses.laps, "no_fade": no_fade, "closed": bool(tr.closed), "flying": bool(flying) and bool(tr.closed),
+                       "series": {"s": (ses.s[idx] / 1e3).round(3).tolist(), "Tf": ses.T_front[idx].round(1).tolist(),
+                                  "Tr": ses.T_rear[idx].round(1).tolist(), "v": ses.v[idx].round(1).tolist(),
+                                  "lap": ses.lap_index[idx].tolist(), "lap_len": float(tr.length / 1e3)}})
 
 
 def setup(variants_json):

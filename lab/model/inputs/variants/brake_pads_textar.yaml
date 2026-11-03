@@ -1,0 +1,9 @@
+meta:
+  group: "Brake pads"
+  label: "Textar (OE-type road pad, generic curve)"
+  name: brake_pads_textar
+  description: "Textar road pads (on the shelf for the vented brakes). Textar publishes no friction-temperature curve for car pads; ECE R90 keeps a replacement pad within ±15 % of the original pad, so this is a generic OE road pad: steady to ~400 °C, then fading"
+set:
+  brakes.front_pad_mu:  {value: 0.40, unit: "-", src: [R90, EST], conf: D}
+  brakes.pad_mu_factor: {value: [0.97, 1.0, 1.03, 1.03, 1.0, 0.90, 0.75, 0.58], unit: "-", src: [EST], conf: D,
+                         note: "T = brakes.pad_mu_T (0..700 °C). Replace with TMD Friction (Textar) data if they provide it"}

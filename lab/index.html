@@ -33,6 +33,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 .tabs{display:flex;gap:2px;padding:6px 8px 0;border-bottom:1px solid var(--line);overflow-x:auto;flex:none;scrollbar-width:thin}
 .tabs button{border:1px solid transparent;border-bottom:0;background:none;color:var(--muted);font:600 .8rem var(--ui);padding:6px 11px;border-radius:5px 5px 0 0;cursor:pointer;white-space:nowrap;margin:0}
 .tabs button:hover{color:var(--fg)}
+#stabs{gap:0;padding:6px 4px 0}
+#stabs button{padding:6px 8px;font-size:.78rem}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--accent-ink);border-color:var(--line);margin-bottom:-1px}
 .pane,.view{display:none}
 .pane.on,.view.on{display:block}
@@ -207,7 +209,9 @@ table.res tr.chg td:first-child{color:var(--accent-ink)}
           <button id="road-go">Route &amp; simulate</button>
           <label>start speed <input id="road-v0" type="number" value="0" min="0" max="150" step="10" style="width:5em"> km/h</label>
           <label>line <select id="road-line"><option value="centre">centre of the road</option><option value="lane">own lane (keep right)</option><option value="full">racing line (full width)</option></select></label>
-          <label>road width <input id="road-width" type="number" value="6" min="3" max="14" step="0.5" style="width:4.5em"> m</label>
+          <label>road width <input id="road-width" type="number" value="6" min="3" max="16" step="0.5" style="width:4.5em"> m</label>
+          <label title="Circuits only (finish at the start): cross the line at the speed you finish the lap with"><input type="checkbox" id="road-flying" checked> flying lap</label>
+          <label title="Drive the route the other way round, e.g. a hillclimb downhill"><input type="checkbox" id="road-reverse"> reverse direction</label>
           <label>colour by <select id="road-colour"><option value="speed">speed</option><option value="gear">gear</option></select></label>
           <button id="road-save">Save route</button>
           <button id="road-load">Load route file</button><input type="file" id="road-file" accept=".yaml,.yml,.json" hidden>
@@ -232,7 +236,25 @@ table.res tr.chg td:first-child{color:var(--accent-ink)}
         the road width is not in the map data, so set it. Hover over the route to see the lines up close.
         Shift points follow practical rules (change down under braking at ≤ 5500 rpm, no gear held under 1.5 s; both are
         sliders in the Powertrain tab); the lap time assumes ideal shifting. Braking is limited by tyre grip and the
-        brake balance; brake fade is not modelled. Circuits run as a standing-start lap from the start line.</p></section>
+        brake balance; brake fade is not modelled. Circuits (a route that finishes where it starts) run as a flying lap:
+        the car crosses the line at the speed it finishes the lap with, and the lines wrap round the start/finish.
+        Untick “flying lap” for a standing start. Each road file can carry its own width (picked up when you choose it).</p></section>
+
+      <section class="view" data-view="Brakes">
+        <div class="roadbar"><label>laps <input id="br-laps" type="number" value="3" min="1" max="10" step="1" style="width:4em"></label>
+          <button id="br-run">Run brake session</button><span class="note" id="br-road" style="margin:0"></span></div>
+        <div class="vgrid">
+          <div class="card"><h2>Front disc and rear drum temperature <small>(one wheel each, lap after lap at the limit)</small></h2><div id="br-chart"></div>
+            <div class="legend"><i style="background:var(--accent)"></i>front disc<i style="background:var(--rear)"></i>rear drum<i style="background:var(--muted);height:1px"></i>dashed: fade starts (friction −10 %)</div></div>
+          <div class="stack"><div class="card"><h2>Hydraulics <small>(cold, full pedal)</small></h2><table class="res" id="br-hyd"></table></div></div>
+        </div>
+        <div class="card" style="margin-top:12px"><h2>Lap by lap</h2><table class="res" id="br-table"></table></div>
+        <p class="note">The brake session uses the road, line, width and start of the Road tab. Each lap is driven at the limit with
+        ideal braking, the disc and drum temperatures carried over from the lap before; open roads run once. Pad and lining friction
+        fall with temperature (curves in baseline.yaml), hot brakes give less torque and shift the front/rear split; when the torque
+        runs short the lap slows. Most brake inputs are estimates (pedal ratio, booster, pad curve, cooling): read the trends and the
+        comparison between setups (solid vs vented discs, road vs race pads), not exact degrees. A real driver brakes earlier than the
+        model, so the time lost to fade here is a minimum.</p></section>
 
       <section class="view" data-view="Dampers & tyre"><div class="charts" id="dt-charts"></div>
         <p class="note">Damper curves are placeholders (confidence D) until the real Koni data are in; the tyre is a generic
@@ -245,10 +267,10 @@ table.res tr.chg td:first-child{color:var(--accent-ink)}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script>
-const MANIFEST = {"files": ["vdm/__init__.py", "vdm/params.py", "vdm/kinematics.py", "vdm/steady_state.py", "vdm/tyre.py", "vdm/drawing.py", "vdm/powertrain.py", "vdm/lapsim.py", "vdm/roads.py", "vdm/racing_line.py", "vdm/setup_ui.py", "vdm/web.py", "inputs/baseline.yaml", "inputs/sources.yaml", "inputs/variants/alpina_bilstein_struts.yaml", "inputs/variants/arb_ST_22_19.yaml", "inputs/variants/lowered_WN_springs.yaml", "inputs/variants/rear_subframe_raised.yaml", "inputs/variants/rc_spacers_20.yaml", "inputs/variants/wheels_FPS_5J_ET26.yaml", "inputs/variants/engine_single_solex.yaml", "inputs/variants/engine_dcoe_300cam.yaml", "inputs/variants/gearbox_235_5.yaml", "inputs/variants/gearbox_245_2_close.yaml", "inputs/variants/gearbox_245_4_od.yaml", "inputs/variants/final_drive_345.yaml", "inputs/variants/final_drive_390.yaml", "inputs/variants/final_drive_411.yaml", "inputs/variants/track_day_lowered.yaml", "inputs/tyres/generic_185_70R13.yaml", "inputs/roads/Agia_Anna_Hillclimb.yaml", "inputs/roads/megara_circuit.yaml", "inputs/roads/voula_hillclimb.yaml"], "stamp": "4bdee600c5"};
+const MANIFEST = {"files": ["vdm/__init__.py", "vdm/params.py", "vdm/kinematics.py", "vdm/steady_state.py", "vdm/tyre.py", "vdm/drawing.py", "vdm/powertrain.py", "vdm/lapsim.py", "vdm/roads.py", "vdm/racing_line.py", "vdm/brakes.py", "vdm/setup_ui.py", "vdm/web.py", "inputs/baseline.yaml", "inputs/sources.yaml", "inputs/variants/alpina_bilstein_struts.yaml", "inputs/variants/arb_ST_22_19.yaml", "inputs/variants/lowered_WN_springs.yaml", "inputs/variants/rear_subframe_raised.yaml", "inputs/variants/rc_spacers_20.yaml", "inputs/variants/wheels_FPS_5J_ET26.yaml", "inputs/variants/brakes_vented_E21_turbo.yaml", "inputs/variants/brake_pads_ferodo_ds2500.yaml", "inputs/variants/brake_pads_pagid_rs29.yaml", "inputs/variants/brake_pads_textar.yaml", "inputs/variants/engine_single_solex.yaml", "inputs/variants/engine_dcoe_300cam.yaml", "inputs/variants/gearbox_235_5.yaml", "inputs/variants/gearbox_245_2_close.yaml", "inputs/variants/gearbox_245_4_od.yaml", "inputs/variants/final_drive_345.yaml", "inputs/variants/final_drive_390.yaml", "inputs/variants/final_drive_411.yaml", "inputs/variants/track_day_lowered.yaml", "inputs/tyres/generic_185_70R13.yaml", "inputs/roads/Agia_Anna_Hillclimb.yaml", "inputs/roads/megara_circuit.yaml", "inputs/roads/nurburgring_nordschleife.yaml", "inputs/roads/voula_hillclimb.yaml"], "stamp": "56e4d00975"};
 const $ = id => document.getElementById(id);
-const SETUP_TABS = ["Setup","Geometry","Springs","Powertrain","Mass"];
-const VIEW_TABS = ["Front axle","Rear axle","Side view","Plan view","Curves","Results","Engine & gearing","Road","Dampers & tyre"];
+const SETUP_TABS = ["Setup","Geometry","Springs","Powertrain","Brakes","Mass"];
+const VIEW_TABS = ["Front axle","Rear axle","Side view","Plan view","Curves","Results","Engine & gearing","Road","Brakes","Dampers & tyre"];
 let py, web, VV=null, variants=[], sliders=[], values={}, busy=false, pending=null, R=null, activeView="Front axle", activePane="Setup";
 const dirty = {};             // views that need a redraw after the next compute
 const status = (t, err) => { $("status").textContent = t; $("status").className = err ? "err" : ""; };
@@ -398,6 +420,7 @@ function renderActive(){
   else if(t==="Engine & gearing") drawEngine(R.gearing);
   else if(t==="Dampers & tyre") drawDampers(JSON.parse(web.dampers_tyre()));
   else if(t==="Road"){ map.invalidateSize(); if(roadPoints) simRoad(false); }
+  else if(t==="Brakes") runBrakes();
 }
 function renderPose(){
   const pv=POSE_VIEWS[activeView];
@@ -579,10 +602,50 @@ function initMap(){
     $("road-preset").value=""; $("road-status").textContent="Click the start, any via points and the finish on the map."; });
   $("road-go").addEventListener("click",()=>routeAndSim().catch(e=>{ $("road-status").textContent="Routing failed: "+e.message; }));
   $("road-v0").addEventListener("change",()=>simRoad(false));
+  $("road-flying").addEventListener("change",()=>simRoad(false));
+  $("road-reverse").addEventListener("change",()=>simRoad(true));
+  $("br-run").addEventListener("click",()=>{ dirty["Brakes"]=true; runBrakes(); });
+  $("br-laps").addEventListener("change",()=>{ dirty["Brakes"]=true; runBrakes(); });
+}
+// the route as driven: reversed when "reverse direction" is ticked
+function roadPts(){ if(!roadPoints) return ""; return $("road-reverse").checked ? JSON.stringify(JSON.parse(roadPoints).reverse()) : roadPoints; }
+
+// ------------------------------------------------------------------ brakes
+function runBrakes(){
+  if(!web||!R) return;
+  const hasRoad=!!roadPoints;
+  $("br-road").textContent = hasRoad ? `Road: ${roadLabel||"drawn route"}${$("road-reverse").checked?" (reversed)":""} · ${$("road-line").selectedOptions[0].textContent} · ${$("road-width").value} m`
+                                     : "Choose a road or circuit in the Road tab to simulate temperatures; the hydraulics below are for this setup.";
+  status(hasRoad?"Simulating the brakes…":"Brake hydraulics…");
+  setTimeout(()=>{
+    let d; try{ d=JSON.parse(web.brakes_session(roadPts(), $("road-line").value, +$("road-width").value||6, Math.max(1,Math.min(10,+$("br-laps").value||3)), $("road-flying").checked, +$("road-v0").value||0)); }
+    catch(e){ status("Brake simulation failed: "+e.message.split("\n").slice(-2)[0], true); return; }
+    drawBrakes(d); status(hasRoad?`Brake session done · ${d.laps.length} lap(s)`:"Brake hydraulics");
+  }, 20);
+}
+function drawBrakes(d){
+  const h=d.hyd, rows=[["Pedal force (hard stop)", `${h.pedal_force_N.toFixed(0)} N`],["Line pressure", `${h.line_pressure_bar.toFixed(0)} bar`],
+    ["Brake torque, front wheel", `${h.torque_front_wheel_Nm.toFixed(0)} Nm`],["Brake torque, rear wheel", `${h.torque_rear_wheel_Nm.toFixed(0)} Nm`],
+    ["Front share of brake torque", `${h.front_share_pct!==undefined?h.front_share_pct:h["front_share_%"].toFixed(1)} %`],
+    ["Deceleration the brakes can give (cold)", `${h.brake_decel_cold_g.toFixed(2)} g`],["Deceleration the tyres allow", `${h.tyre_decel_g.toFixed(2)} g`],
+    ["Reserve (brakes / tyres)", `${(h.brake_decel_cold_g/h.tyre_decel_g).toFixed(2)} ×`],
+    ["Front pads start to fade at", h.fade_onset_front_C?`≈ ${h.fade_onset_front_C.toFixed(0)} °C`:"–"],["Rear linings start to fade at", h.fade_onset_rear_C?`≈ ${h.fade_onset_rear_C.toFixed(0)} °C`:"–"]];
+  $("br-hyd").innerHTML=rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  if(!d.series){ $("br-chart").innerHTML='<p class="note">No road chosen yet.</p>'; $("br-table").innerHTML=""; return; }
+  const S=d.series, lapLen=S.lap_len, n=d.laps.length, tick=[]; for(let k=0;k<=n;k++) tick.push(+(k*lapLen).toFixed(lapLen<5?2:1));
+  const ser=[{y:S.Tf,c:"var(--accent)",w:2},{y:S.Tr,c:"var(--rear)",w:2}];
+  if(h.fade_onset_front_C) ser.push({y:S.s.map(()=>h.fade_onset_front_C),c:"var(--accent)",w:1,dash:true});
+  if(h.fade_onset_rear_C) ser.push({y:S.s.map(()=>h.fade_onset_rear_C),c:"var(--rear)",w:1,dash:true});
+  $("br-chart").innerHTML=chart(`Temperature [°C] vs distance [km]${n>1?" (ticks: end of each lap)":""}`, S.s, ser, tick, {ymin:0, xmin:0, xmax:S.s[S.s.length-1]});
+  let t=`<tr><th>Lap</th><th>Time</th><th>vs no fade</th><th>Front disc max</th><th>Rear drum max</th><th>Front pad μ, lowest</th><th>Braking cut short</th></tr>`;
+  d.laps.forEach(l=>{ const dt=l.time-d.no_fade;
+    t+=`<tr><td>${l.lap}</td><td>${lapT(l.time)}</td><td class="${dt>0.05?"neg":""}">${dt>0.05?"+"+dt.toFixed(1)+" s":"–"}</td><td class="${h.fade_onset_front_C&&l.T_front_max>h.fade_onset_front_C?"neg":""}">${l.T_front_max.toFixed(0)} °C</td>`+
+       `<td class="${h.fade_onset_rear_C&&l.T_rear_max>h.fade_onset_rear_C?"neg":""}">${l.T_rear_max.toFixed(0)} °C</td><td>${l.mu_front_min.toFixed(2)}</td><td>${(100*l.brake_limited).toFixed(0)} % of the lap</td></tr>`; });
+  $("br-table").innerHTML=t;
 }
 function loadPreset(){ const n=$("road-preset").value; if(!n) return; drawing=false; wpLayer.clearLayers();
-  if(n.startsWith("my:")){ const r=myRoutes()[n.slice(3)]; roadPoints=JSON.stringify(r.points); roadLabel=r.label; }
-  else { roadPoints=web.road_points(n); roadLabel=$("road-preset").selectedOptions[0].textContent; }
+  if(n.startsWith("my:")){ const r=myRoutes()[n.slice(3)]; roadPoints=JSON.stringify(r.points); roadLabel=r.label; if(r.width) $("road-width").value=r.width; }
+  else { roadPoints=web.road_points(n); roadLabel=$("road-preset").selectedOptions[0].textContent; if(PRESETS[n]&&PRESETS[n].width) $("road-width").value=PRESETS[n].width; }
   $("road-status").textContent=""; simRoad(true); }
 function densify(ll, step){
   const out=[ll[0]], R=6371000;
@@ -613,10 +676,11 @@ function speedColor(t){ const c=[[49,54,149],[69,117,180],[116,173,209],[171,217
 // saved routes: kept in this browser (localStorage) + downloaded as a road file (same format as inputs/roads/*.yaml)
 function myRoutes(){ try{ return JSON.parse(localStorage.getItem("lab_routes")||"{}"); }catch(e){ return {}; } }
 function storeRoutes(o){ try{ localStorage.setItem("lab_routes", JSON.stringify(o)); return true; }catch(e){ return false; } }
+let PRESETS={};
 function fillPresets(){
   const sel=$("road-preset"); sel.innerHTML='<option value="">Choose a road…</option>';
   const g1=document.createElement("optgroup"); g1.label="Presets";
-  JSON.parse(web.road_presets()).forEach(p=>{ const o=document.createElement("option"); o.value=p.name; o.textContent=p.label; g1.appendChild(o); });
+  JSON.parse(web.road_presets()).forEach(p=>{ PRESETS[p.name]=p; const o=document.createElement("option"); o.value=p.name; o.textContent=p.label+(p.closed?" · circuit":""); g1.appendChild(o); });
   sel.appendChild(g1);
   const mine=myRoutes(), keys=Object.keys(mine);
   if(keys.length){ const g2=document.createElement("optgroup"); g2.label="My routes (this browser)";
@@ -640,15 +704,23 @@ function saveRoute(){
 async function loadRouteFile(e){
   const f=e.target.files[0]; if(!f) return;
   try{ const d=JSON.parse(web.parse_road(await f.text())); const label=d.label||f.name.replace(/\.(ya?ml|json)$/i,"");
-    roadPoints=JSON.stringify(d.points); roadLabel=label; const mine=myRoutes(); mine[label]={label, points:d.points}; storeRoutes(mine);
+    roadPoints=JSON.stringify(d.points); roadLabel=label; if(d.width) $("road-width").value=d.width;
+    const mine=myRoutes(); mine[label]={label, points:d.points, width:d.width||undefined}; storeRoutes(mine);
     fillPresets(); $("road-preset").value="my:"+label; $("road-status").textContent="Loaded "+f.name+"."; simRoad(true);
   }catch(err){ $("road-status").textContent="Could not read that file: "+err.message.split("\n").slice(-2)[0]; }
   e.target.value="";
 }
+const lapT = t => t>=100 ? `${Math.floor(t/60)}:${(t%60).toFixed(1).padStart(4,"0")}` : `${t.toFixed(1)} s`;   // 10:59.8 / 84.3 s
 function simRoad(fit){
   if(!roadPoints||!web) return;
-  let r; try{ r=JSON.parse(web.road_sim(roadPoints, +$("road-v0").value||0, $("road-line").value, +$("road-width").value||6)); }catch(e){ $("road-status").textContent="Simulation failed: "+e.message.split("\n").slice(-2)[0]; return; }
+  status("Simulating "+(roadLabel||"the route")+"…");
+  setTimeout(()=>{ simRoadNow(fit); status(`Lap simulated · ${R?R.limit+" at "+R.max_ay.toFixed(2)+" g":""}`); }, 20);
+}
+function simRoadNow(fit){
+  dirty["Brakes"]=true;
+  let r; try{ r=JSON.parse(web.road_sim(roadPts(), +$("road-v0").value||0, $("road-line").value, +$("road-width").value||6, $("road-flying").checked)); }catch(e){ $("road-status").textContent="Simulation failed: "+e.message.split("\n").slice(-2)[0]; return; }
   lastRoad=r; drawRoad(r, fit);
+  if(activeView==="Brakes"){ dirty["Brakes"]=false; runBrakes(); }   // the Brakes tab was opened while this road was still simulating
 }
 function drawRoad(r, fit){
   routeLayer.clearLayers();
@@ -664,9 +736,10 @@ function drawRoad(r, fit){
   if(fit){ map.invalidateSize(); map.fitBounds(L.latLngBounds(r.latlon),{padding:[20,20]}); }
   drawKeys(r); zoomBox(Math.min(lastHover, r.s.length-1));
   $("road-lines").innerHTML="Lines on a "+r.width+" m road (this setup / car as is): "+Object.entries(r.lines).map(([k,v])=>
-    `<span style="color:${LINE_COL[k]}">●</span> ${k===r.line?"<b>":""}${v.label}: ${v.time.toFixed(1)} s${k===r.line?"</b>":""} <span style="color:var(--muted)">(${v.time_ref.toFixed(1)})</span>`).join(" &nbsp;·&nbsp; ");
+    `<span style="color:${LINE_COL[k]}">●</span> ${k===r.line?"<b>":""}${v.label}: ${lapT(v.time)}${k===r.line?"</b>":""} <span style="color:var(--muted)">(${lapT(v.time_ref)})</span>`).join(" &nbsp;·&nbsp; ");
   const d=r.time-r.time_ref;
-  $("road-summary").innerHTML=`<b>${r.time.toFixed(1)} s</b> (car as is ${r.time_ref.toFixed(1)} s, ${d>=0?"+":""}${d.toFixed(1)} s) · ${(r.length/1000).toFixed(2)} km · `+
+  const kind = r.flying ? `flying lap, crossing the line at ${r.v_start.toFixed(0)} km/h · ` : r.closed ? "circuit, standing start · " : "";
+  $("road-summary").innerHTML=`<b>${lapT(r.time)}</b> (car as is ${lapT(r.time_ref)}, ${d>=0?"+":""}${d.toFixed(1)} s) · ${kind}${(r.length/1000).toFixed(2)} km · `+
     `average ${r.avg.toFixed(1)} km/h · top ${r.vmax.toFixed(0)} km/h · climb ${r.climb>=0?"+":""}${r.climb.toFixed(0)} m · gears used ${r.gears_used.join(", ")} · tightest bend ≈ ${r.min_radius.toFixed(0)} m radius<br>`+
     `<span class="legend">time limited by: power ${(100*r.share.power).toFixed(0)} % · traction ${(100*r.share.traction).toFixed(0)} % · braking ${(100*r.share.brake).toFixed(0)} % · cornering ${(100*r.share.corner).toFixed(0)} %</span>`;
   const L_=r.s[r.s.length-1], step=L_>4000?1000:L_>1500?500:250, ticks=[]; for(let x=0;x<=L_;x+=step) ticks.push(x);

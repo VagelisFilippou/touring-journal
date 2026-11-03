@@ -224,6 +224,8 @@ driveline:
 driver:   # how the simulated driver uses the gearbox (display of shift points; the lap time assumes ideal shifting)
   downshift_rpm: {value: 5500, unit: rpm, src: [EST], conf: C, note: "under braking, change down one gear at a time once the lower gear lands at or below this (heel-and-toe)"}
   min_gear_time: {value: 1.5, unit: s, src: [EST], conf: C, note: "no gear held shorter than this; a short stint takes the higher neighbouring gear (never over the rev limit)"}
+  max_pedal_force: {value: 400, unit: N, src: [EST], conf: C, note: "hard stop; ECE R13 assumes up to 500 N"}
+  pace:          {value: 100, unit: "%", src: [EST], conf: C, note: "share of the grip limit the driver uses (cornering, braking, traction). 100 = theoretical limit; a quick track-day driver is nearer 85-90"}
 
 brakes:
   front_disc_diameter:  {value: 256, unit: mm, src: [TD], conf: A}
@@ -231,7 +233,7 @@ brakes:
   front_piston_d:       {value: 40, unit: mm, src: [TD, MAN-BR], conf: B, note: "ATE 4-piston (2 per side)"}
   front_pistons_per_side: {value: 2, unit: "-", src: [MAN-BR], conf: B}
   front_effective_radius: {value: 105, unit: mm, src: [EST], conf: C}
-  front_pad_mu:         {value: 0.38, unit: "-", src: [EST], conf: C}
+  front_pad_mu:         {value: 0.40, unit: "-", src: [ATE-BR], conf: B, note: "ATE Original pads (on the car since 09/2025): 0.40 cold braking system"}
   rear_drum_diameter:   {value: 250, unit: mm, src: [TD], conf: A}
   rear_wheel_cyl_d:     {value: 19, unit: mm, src: [TD], conf: A}
   rear_brake_factor:    {value: 2.0, unit: "-", src: [EST], conf: C, note: "simplex leading/trailing drum, BF·μ incl."}
@@ -240,3 +242,28 @@ brakes:
   pressure_regulator:   {value: none_found, src: [TD], conf: C, note: "TD: rear pressure regulator not found yet"}
   rotor_inertia_front:  {value: 0.06, unit: kgm2, src: [EST], conf: C}
   drum_inertia_rear:    {value: 0.10, unit: kgm2, src: [EST], conf: C}
+  # --- brake model (vdm/brakes.py): hydraulics, friction vs temperature, lumped disc / drum temperatures
+  pedal_ratio:          {value: 4.0, unit: "-", src: [EST], conf: D, note: "pedal lever ratio, typical 3.5–4.5; measure: pedal pad to pivot / pushrod to pivot"}
+  pad_mu_T:             {value: [0, 100, 200, 300, 400, 500, 600, 700], unit: degC, src: [EST], conf: D, note: "temperatures for pad_mu_factor"}
+  pad_mu_factor:        {value: [1.0, 1.05, 1.05, 1.05, 1.05, 0.95, 0.80, 0.62], unit: "-", src: [ATE-BR, EST], conf: C,
+                         note: "ATE Original: 0.40 cold, 0.42 'first use at high temperature' (≈ steady up to ~400-450 °C, temperature of the ATE test not stated);
+                                above 500 °C an assumed road-pad fade (conf D)"}
+  lining_mu_T:          {value: [0, 100, 200, 300, 400, 500], unit: degC, src: [EST], conf: D}
+  lining_mu_factor:     {value: [0.95, 1.0, 0.97, 0.85, 0.68, 0.50], unit: "-", src: [EST], conf: D,
+                         note: "rear drum lining μ / cold; the brake factor is taken proportional to μ (leading/trailing shoe)"}
+  heat_to_rotor:        {value: 0.90, unit: "-", src: [EST], conf: C, note: "share of the braking energy into the disc/drum (rest into pads/shoes)"}
+  ambient_temperature:  {value: 25, unit: degC, src: [EST], conf: C}
+  front_thermal:        # solid 256 x 12.9 disc (one wheel)
+    mass:            {value: 4.2, unit: kg, src: [EST], conf: C, note: "solid 256 x 12.9 disc incl. hat; weigh one to confirm"}
+    area:            {value: 0.11, unit: m2, src: [EST], conf: C, note: "surface washed by air (both faces, rim, hat)"}
+    h0:              {value: 10, unit: W/m2K, src: [EST], conf: C, note: "standstill (natural convection)"}
+    hv:              {value: 6.0, unit: W/m2K, src: [LIMPERT, EST], conf: C, note: "h = h0 + hv·v^0.8 (v in m/s). Limpert's solid-rotor formula gives 7.5 in free air (k = 0.039, ν = 3.5e-5 at ~250 °C film, D = 256 mm); ×0.8 for the wheel around it. ≈ 100 W/m²K at 100 km/h"}
+    emissivity:      {value: 0.6, unit: "-", src: [EST], conf: C}
+    cooling_factor:  {value: 1.0, unit: "-", src: [EST], conf: D, note: "ducts / shields: >1 better cooling"}
+  rear_thermal:         # 250 mm drum (one wheel)
+    mass:            {value: 5.0, unit: kg, src: [EST], conf: C}
+    area:            {value: 0.10, unit: m2, src: [EST], conf: C}
+    h0:              {value: 8, unit: W/m2K, src: [EST], conf: C}
+    hv:              {value: 4.0, unit: W/m2K, src: [EST], conf: D, note: "drum inside the wheel cools worse than an open disc"}
+    emissivity:      {value: 0.6, unit: "-", src: [EST], conf: C}
+    cooling_factor:  {value: 1.0, unit: "-", src: [EST], conf: D}

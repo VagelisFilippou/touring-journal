@@ -1,0 +1,9 @@
+meta:
+  group: "Brake pads"
+  label: "Ferodo DS2500 (fast road / track day)"
+  name: brake_pads_ferodo_ds2500
+  description: "Ferodo DS2500: road and track-day pad, average μ 0.41 over 0-500 °C (Ferodo Racing). Above 500 °C an assumed gradual drop"
+set:
+  brakes.front_pad_mu:  {value: 0.41, unit: "-", src: [FERODO-DS2500], conf: C}
+  brakes.pad_mu_factor: {value: [0.95, 1.0, 1.0, 1.0, 1.0, 1.0, 0.92, 0.82], unit: "-", src: [FERODO-DS2500, EST], conf: C,
+                         note: "flat 0-500 °C per Ferodo; 600-700 °C assumed"}

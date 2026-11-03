@@ -2,7 +2,8 @@ meta:
   label: Voula hillclimb (SISA, 3.2 km)
   name: voula_hillclimb
   description: 'Ανάβαση Βούλας (SISA): start Υμηττού / Μπελλές, Panorama Voulas -> Κρεμασμένος Λαγός hairpin -> north past Θρακιά Συκιάς -> finish'
-  note: Waypoints read from the organiser map (04_Events_Trips/Voula_Hillclimb_2026/Photos) on OSM tiles; start/finish positions approximate
+  note: Waypoints read from the organiser map (04_Events_Trips/Voula_Hillclimb_2026/Photos) on OSM tiles; start/finish positions approximate. Width = typical two-lane mountain road (estimate)
+  width: 6.0
   geometry: OpenStreetMap via OSRM (router.project-osrm.org), ODbL
   elevation: Open-Meteo elevation API (Copernicus DEM GLO-90)
   waypoints:

@@ -56,6 +56,17 @@ PARAMS = [
     ("Powertrain", "Driveline efficiency [-]", "driveline.efficiency", 0.80, 0.97, 0.01),
     ("Driver", "Downshift under braking at or below [rpm]", "driver.downshift_rpm", 4000, 7000, 100),
     ("Driver", "Shortest time in a gear [s]", "driver.min_gear_time", 0, 4, 0.1),
+    ("Driver", "Pace [% of the grip limit]", "driver.pace", 70, 100, 1),
+    ("Brakes", "Max pedal force (hard stop) [N]", "driver.max_pedal_force", 150, 700, 10),
+    ("Brakes", "Pedal ratio [-]", "brakes.pedal_ratio", 3.0, 6.0, 0.1),
+    ("Brakes", "Booster ratio [-] (1 = no servo)", "brakes.booster_ratio", 1.0, 4.0, 0.1),
+    ("Brakes", "Master cylinder Ø [mm]", "brakes.master_cyl_d", 19.0, 26.0, 0.01),
+    ("Brakes", "Rear wheel cylinder Ø [mm]", "brakes.rear_wheel_cyl_d", 15.0, 25.0, 0.1),
+    ("Brakes", "Front pad μ, cold [-]", "brakes.front_pad_mu", 0.25, 0.60, 0.01),
+    ("Brake cooling", "Front disc mass [kg]", "brakes.front_thermal.mass", 3.0, 8.0, 0.1),
+    ("Brake cooling", "Front cooling factor [-] (ducts, shields)", "brakes.front_thermal.cooling_factor", 0.5, 3.0, 0.05),
+    ("Brake cooling", "Rear drum mass [kg]", "brakes.rear_thermal.mass", 3.0, 8.0, 0.1),
+    ("Brake cooling", "Ambient temperature [°C]", "brakes.ambient_temperature", 0, 45, 1),
     ("Mass / tyres", "Kerb mass [kg]", "mass.kerb", 850, 1200, 5),
     ("Mass / tyres", "Front weight fraction (kerb) [-]", "mass.front_fraction_kerb", 0.46, 0.60, 0.005),
     ("Mass / tyres", "CoG height (kerb) [mm]", "mass.cog_height_kerb", 400, 600, 5),
@@ -71,9 +82,11 @@ PARAMS = [
 TABS = {"Front geometry": ("Geometry", "Front axle"), "Rear geometry": ("Geometry", "Rear axle"),
         "Springs / ARB": ("Springs", "Springs & anti-roll bars"), "Dampers": ("Springs", "Dampers"),
         "Powertrain": ("Powertrain", "Gearbox, final drive & engine"), "Driver": ("Powertrain", "Shift points (driver)"),
+        "Brakes": ("Brakes", "Hydraulics & pads"), "Brake cooling": ("Brakes", "Disc / drum heat"),
         "Mass / tyres": ("Mass", "Mass & tyres")}
 # first entry of each one-of group (drop-down) = the car as it is
-AS_IS = {"Wheels & tyres": "Steel 5.5J × 13 ET18 (as is)", "Engine": "Twin Weber 40 DCOE, ~120 PS (as is)",
+AS_IS = {"Brakes": "Solid discs 256 × 12.9, ATE ti calipers (as is)", "Brake pads": "Road pads (as is)",
+         "Wheels & tyres": "Steel 5.5J × 13 ET18 (as is)", "Engine": "Twin Weber 40 DCOE, ~120 PS (as is)",
          "Gearbox": "Getrag 242 4-speed (as is)", "Final drive": "3.64 (as is)"}
 
 

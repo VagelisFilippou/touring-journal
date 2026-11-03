@@ -2,8 +2,9 @@ meta:
   label: Megara circuit (2.0 km)
   name: megara_circuit
   description: Αυτοδρόμιο Μεγάρων, full circuit
-  note: 'OSM way 70043234 (no oneway tag): driving direction NOT verified; standing start at the OSM way''s first node'
+  note: 'OSM way 70043234 (no oneway tag): driving direction NOT verified; lap starts at the OSM way''s first node. Width = estimate, not measured'
   closed: true
+  width: 10.0
   geometry: OpenStreetMap way 70043234 (OSM API / Overpass), ODbL
   elevation: Open-Meteo elevation API (Copernicus DEM GLO-90)
   waypoints: []
