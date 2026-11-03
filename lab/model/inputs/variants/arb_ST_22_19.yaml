@@ -1,4 +1,6 @@
 meta:
+  group: "Chassis"
+  label: "Anti-roll bars 22 / 19 mm"
   name: arb_ST_22_19
   description: "Suspension Techniques 52000 kit: 22 mm front / 19 mm rear (example aftermarket ARBs)"
 set:

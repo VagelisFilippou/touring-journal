@@ -1,132 +1,35 @@
-"""Browser entry point (Pyodide) for the web 'Suspension lab'. Same model code as the desktop GUI.
+"""Browser entry point (Pyodide) for the web lab. Same model code and the same setup controls
+(vdm/setup_ui.py) as the desktop GUI.
 
 JS calls (all return JSON strings):
-  setup(variants_json)                 -> slider spec with base values for the chosen variants
-  compute(variants_json, sliders_json) -> results + curves (baseline vs current)
-  pose(heave_mm, roll_deg, steer_mm)   -> drawing data for the front and rear views
+  variants()                           -> variant catalogue grouped like the desktop app
+  setup(variants_json)                 -> slider spec (tab, section, base values) for the chosen variants
+  compute(variants_json, values_json)  -> results, curves, gearing (car as is vs this setup)
+  pose(heave_mm, roll_deg, steer_mm, views_json) -> drawing data for the requested views
+  dampers_tyre()                       -> damper, tyre and handling-diagram curves (on demand)
 """
 from __future__ import annotations
 
 import json
-import re
 
 import numpy as np
 
-from . import drawing as D, kinematics as K, lapsim as LS, params, powertrain as PT, roads as RD, steady_state as S
+from . import drawing as D, kinematics as K, lapsim as LS, params, powertrain as PT, racing_line as RLN, roads as RD, steady_state as S
+from . import setup_ui as SU
 
 G = 9.80665
 MM = 1e3
+D.VIEWS.setdefault("plan_up", (1, 0, 2, 1))       # plan view with the front of the car up (axle tabs)
+WEB_GROUPS_SKIP = {"My setups"}                    # personal what-if files stay on the desktop
 
-# (group, label, path, min, max, step) — subset of the desktop GUI sliders; values in input-file units
-SLIDERS = [
-    ("Front", "Ride height change [mm]", "chassis.ride_height_change_front", -60, 30, 1),
-    ("Front", "Roll-centre spacer [mm]", "suspension.front.rc_spacer", 0, 40, 1),
-    ("Front", "Bump-steer spacer [mm]", "suspension.front.bump_steer_spacer", 0, 40, 1),
-    ("Front", "Strut built-in camber [deg]", "suspension.front.strut_camber_offset", -3, 1, 0.1),
-    ("Front", "Camber plate, top inboard [mm]", "@camber_plate_in", -10, 30, 1),
-    ("Front", "Static toe, total [mm]", "suspension.front.alignment.toe", -3, 5, 0.1),
-    ("Front", "Lower arm inner pivot z [mm]", "suspension.front.hardpoints.lca_inner[2]", 140, 240, 1),
-    ("Rear", "Ride height change [mm]", "chassis.ride_height_change_rear", -60, 30, 1),
-    ("Rear", "Trailing-arm sweep [deg]", "@rear_sweep", 5, 35, 0.5),
-    ("Rear", "Pivot height [mm]", "@rear_pivot_z", 170, 290, 1),
-    ("Rear", "Subframe height offset [mm] (+ up)", "suspension.rear.subframe_offset[2]", -20, 30, 0.5),
-    ("Rear", "Static camber [deg]", "suspension.rear.alignment.camber", -4, 0.5, 0.1),
-    ("Springs & bars", "Front spring rate [N/mm]", "suspension.front.spring.rate", 10, 80, 0.5),
-    ("Springs & bars", "Rear spring rate [N/mm]", "suspension.rear.spring.rate", 10, 100, 0.5),
-    ("Springs & bars", "Front anti-roll bar Ø [mm] (0 = none)", "suspension.front.arb.diameter", 0, 28, 0.5),
-    ("Springs & bars", "Rear anti-roll bar Ø [mm] (0 = none)", "suspension.rear.arb.diameter", 0, 25, 0.5),
-    ("Springs & bars", "Front damper setting (0 soft – 1 hard)", "suspension.front.damper.setting", 0, 1, 0.05),
-    ("Springs & bars", "Rear damper setting (0 soft – 1 hard)", "suspension.rear.damper.setting", 0, 1, 0.05),
-    ("Mass & tyres", "CoG height [mm]", "mass.cog_height_kerb", 400, 600, 5),
-    ("Mass & tyres", "Front weight fraction [-]", "mass.front_fraction_kerb", 0.46, 0.60, 0.005),
-    ("Mass & tyres", "Wheel offset ET [mm]", "wheels.offset_ET", -10, 40, 1),
-    ("Mass & tyres", "Tyre grip μ [-]", "tyre:lateral.mu_y0", 0.6, 1.6, 0.01),
-]
-# file -> (group, label). "Chassis" = checkboxes; the other groups are one-of choices (drop-downs)
-VARIANTS = {
-    "lowered_WN_springs.yaml": ("Chassis", "Lowering springs (−20 mm)"),
-    "rc_spacers_20.yaml": ("Chassis", "Roll-centre spacers 20 mm"),
-    "alpina_bilstein_struts.yaml": ("Chassis", "Alpina struts (−1.5° camber)"),
-    "arb_ST_22_19.yaml": ("Chassis", "Anti-roll bars 22/19 mm"),
-    "rear_subframe_raised.yaml": ("Chassis", "Rear subframe mounts flipped (+12.5 mm)"),
-    "wheels_FPS_5J_ET26.yaml": ("Chassis", "FPS alloys 5J ET26"),
-    "engine_single_solex.yaml": ("Engine", "Single Solex, 100 PS (until April 2026)"),
-    "engine_dcoe_300cam.yaml": ("Engine", "Twin DCOE + 300° cam, ~140 PS (idea)"),
-    "gearbox_235_5.yaml": ("Gearbox", "Getrag 235/5 dogleg"),
-    "gearbox_245_2_close.yaml": ("Gearbox", "Getrag 245/2 close ratio"),
-    "gearbox_245_4_od.yaml": ("Gearbox", "Getrag 245/4 overdrive"),
-    "final_drive_345.yaml": ("Final drive", "3.45"),
-    "final_drive_390.yaml": ("Final drive", "3.90"),
-    "final_drive_411.yaml": ("Final drive", "4.11"),
-}
-AS_IS = {"Engine": "Twin Weber 40 DCOE, ~120 PS (as is)", "Gearbox": "Getrag 242 4-speed (as is)", "Final drive": "3.64 (as is)"}
-VARIANT_LABELS = {f: lab for f, (_, lab) in VARIANTS.items()}
+
+def web_variants():
+    return [v for v in params.variant_catalog() if v["group"] not in WEB_GROUPS_SKIP]
+
+
+VARIANT_LABELS = {v["file"]: v["label"] for v in web_variants()}
 
 _state = {}
-
-
-# ---------------------------------------------------------------- helpers
-def _leaf(raw, path):
-    d = raw
-    for k in path.split("."):
-        d = d[k]
-    return d
-
-
-def _split(path):
-    m = re.match(r"(.*)\[(\d)\]$", path)
-    return (m.group(1), int(m.group(2))) if m else (path, None)
-
-
-def _special(raw):
-    hp = _leaf(raw, "suspension.rear.hardpoints")
-    o, i = np.array(hp["tsa_pivot_outer"]["value"], float), np.array(hp["tsa_pivot_inner"]["value"], float)
-    k = i - o
-    return {"@rear_sweep": float(np.degrees(np.arctan2(-k[0], -k[1]))), "@rear_pivot_z": float(o[2]),
-            "@camber_plate_in": -float(_leaf(raw, "suspension.front.camber_plate_offset")["value"][1])}
-
-
-def _tyre_raw(raw):
-    import yaml
-    return yaml.safe_load(open(params.INPUTS / "tyres" / _leaf(raw, "wheels.tyre_model")["value"], encoding="utf-8"))
-
-
-def _base_value(raw, tyre_raw, path):
-    if path.startswith("@"):
-        return _special(raw)[path]
-    if path.startswith("tyre:"):
-        return float(_leaf(tyre_raw, path[5:])["value"])
-    p, idx = _split(path)
-    v = _leaf(raw, p)["value"]
-    return float(v[idx] if idx is not None else v)
-
-
-def _overrides(raw, tyre_raw, values):
-    ov, tov, vec = {}, {}, {}
-    changed = {p: v for p, v in values.items() if abs(v - _base_value(raw, tyre_raw, p)) > 1e-3}  # below the smallest slider step
-    for path, val in changed.items():
-        if path.startswith("tyre:"):
-            tov[path[5:]] = val
-        elif not path.startswith("@"):
-            p, idx = _split(path)
-            if idx is None:
-                ov[p] = val
-            else:
-                vec.setdefault(p, list(_leaf(raw, p)["value"]))[idx] = val
-    ov.update(vec)
-    if "@camber_plate_in" in changed:
-        ov["suspension.front.camber_plate_offset"] = [0.0, -changed["@camber_plate_in"]]
-    if "@rear_sweep" in changed or "@rear_pivot_z" in changed:
-        hp = _leaf(raw, "suspension.rear.hardpoints")
-        o = np.array(hp["tsa_pivot_outer"]["value"], float)
-        i = np.array(hp["tsa_pivot_inner"]["value"], float)
-        L = np.linalg.norm(i - o)
-        sw = np.radians(values.get("@rear_sweep", _special(raw)["@rear_sweep"]))
-        o[2] = values.get("@rear_pivot_z", o[2])
-        i_new = o + L * np.array([-np.sin(sw), -np.cos(sw), 0.0])
-        ov["suspension.rear.hardpoints.tsa_pivot_outer"] = [float(x) for x in o]
-        ov["suspension.rear.hardpoints.tsa_pivot_inner"] = [float(x) for x in i_new]
-    return ov, tov
 
 
 class Model:
@@ -142,7 +45,7 @@ class Model:
         self.kin = K.summary(self.p, sweeps=(self.sf, self.sr))
         self.ride = self._ride()
         self.lap = LS.LapSim(self.p, vehicle=self.veh, tyre_overrides=tov or {})
-        self.acc = self.lap.accel_times(speeds_kmh=(100,), dist_m=(1000,))
+        self.acc = self.lap.accel_times(speeds_kmh=(60, 100, 140), dist_m=(400, 1000))
 
     def _ride(self):
         out = {}
@@ -157,44 +60,61 @@ class Model:
             m_c = W / 2 / G - ax.m_unsprung
             k_ride = ax.k_wheel * ax.k_tyre / (ax.k_wheel + ax.k_tyre)
             out[axle] = {"body_freq": float(np.sqrt(k_ride / m_c) / (2 * np.pi)),
-                         "body_damping": float(c_w / (2 * np.sqrt(k_ride * m_c)))}
+                         "hop_freq": float(np.sqrt((ax.k_wheel + ax.k_tyre) / ax.m_unsprung) / (2 * np.pi)),
+                         "body_damping": float(c_w / (2 * np.sqrt(k_ride * m_c))),
+                         "wheel_load": float(W / 2)}
         return out
 
 
 def _curves(m):
     out = {}
     for axle, sw in (("front", m.sf), ("rear", m.sr)):
+        i0 = lambda y: np.interp(0, sw.travel, y)
         out[axle] = {"travel": (sw.travel * MM).round(1).tolist(), "camber": np.degrees(sw.camber).round(3).tolist(),
                      "toe": (np.degrees(sw.toe) * 60).round(2).tolist(), "rc": (sw.rc_height * MM).round(1).tolist(),
-                     "mr": sw.spring_mr.round(4).tolist()}
+                     "mr": sw.spring_mr.round(4).tolist(),
+                     "track": ((sw.half_track - i0(sw.half_track)) * MM).round(2).tolist(),
+                     "wcx": ((sw.wc[:, 0] - i0(sw.wc[:, 0])) * MM).round(2).tolist()}
     return out
 
 
-def _results(m):
-    s, k = m.summary, m.kin
-    r = {"0–100 km/h [s]": m.acc["0-100 km/h [s]"], "1 km standing start [s]": m.acc["1000 m standing [s]"],
-         "Top speed [km/h]": m.acc["top speed [km/h]"],
-         "Roll gradient [°/g]": s["roll_gradient_deg_per_g"], "Understeer gradient [°/g]": s["understeer_grad_deg_per_g"],
-         "Max lateral acceleration [g]": s["max_ay_g"], "Front share of roll stiffness [%]": s["roll_stiffness_front_%"],
-         "Front share of load transfer [%]": s["LLTD_front_%"]}
+# (label, getter, better: +1 higher is better, -1 lower is better, 0 neutral)
+_PERF = [("0–60 km/h [s]", lambda m: m.acc["0-60 km/h [s]"], -1), ("0–100 km/h [s]", lambda m: m.acc["0-100 km/h [s]"], -1),
+         ("0–140 km/h [s]", lambda m: m.acc["0-140 km/h [s]"], -1), ("400 m standing start [s]", lambda m: m.acc["400 m standing [s]"], -1),
+         ("1 km standing start [s]", lambda m: m.acc["1000 m standing [s]"], -1), ("Top speed [km/h]", lambda m: m.acc["top speed [km/h]"], 1)]
+_VEH = [("Mass with driver [kg]", "mass_kg", 0), ("Front weight [%]", "front_weight_%", 0), ("CoG height [mm]", "cog_height_mm", 0),
+        ("Roll gradient [°/g]", "roll_gradient_deg_per_g", -1), ("Roll arm (CoG over roll axis) [mm]", "roll_arm_mm", 0),
+        ("Front share of roll stiffness [%]", "roll_stiffness_front_%", 0), ("Front share of load transfer [%]", "LLTD_front_%", 0),
+        ("Understeer gradient [°/g]", "understeer_grad_deg_per_g", 0), ("Max lateral acceleration [g]", "max_ay_g", 1)]
+_AXLE = [("Static camber [°]", "kin", "camber_deg"), ("Static toe, total [mm]", "kin", "toe_total_mm"),
+         ("Camber gain [°/10 mm bump]", "kin", "camber_gain_deg_per_10mm"), ("Bump steer [°/10 mm bump]", "kin", "bump_steer_deg_per_10mm"),
+         ("Roll centre height [mm]", "kin", "roll_centre_mm"), ("Track [mm]", "kin", "track_mm"),
+         ("Spring rate [N/mm]", "veh", "spring_N/mm"), ("Spring motion ratio [-]", "kin", "spring_MR"), ("Damper motion ratio [-]", "kin", "damper_MR"),
+         ("Wheel rate [N/mm]", "veh", "wheel_rate_N/mm"), ("Roll stiffness, springs [Nm/°]", "veh", "K_roll_spring_Nm/deg"),
+         ("Roll stiffness, anti-roll bar [Nm/°]", "veh", "K_roll_arb_Nm/deg"), ("Static wheel load [N]", "ride", "wheel_load"),
+         ("Body (ride) frequency [Hz]", "ride", "body_freq"), ("Wheel-hop frequency [Hz]", "ride", "hop_freq"),
+         ("Body damping ratio [-] (placeholder dampers)", "ride", "body_damping")]
+
+
+def _results(m, ref):
+    """Grouped like the desktop Results tab: [{group, rows: [[label, car as is, this setup, better]]}]."""
+    f = lambda v: None if v is None else float(v)
+    out = [{"group": "Performance (full throttle, ideal shifts)", "rows": [[lab, f(g(ref)), f(g(m)), b] for lab, g, b in _PERF]},
+           {"group": "Vehicle (steady state)", "rows": [[lab, f(ref.summary[k]), f(m.summary[k]), b] for lab, k, b in _VEH]}]
     for axle in ("front", "rear"):
-        A = axle.capitalize()
-        r[f"{A} roll centre [mm]"] = k[axle]["roll_centre_mm"]
-        r[f"{A} static camber [°]"] = k[axle]["camber_deg"]
-        r[f"{A} camber gain [°/10 mm]"] = k[axle]["camber_gain_deg_per_10mm"]
-        r[f"{A} bump steer [°/10 mm]"] = k[axle]["bump_steer_deg_per_10mm"]
-        r[f"{A} track [mm]"] = k[axle]["track_mm"]
-        r[f"{A} wheel rate [N/mm]"] = s[axle]["wheel_rate_N/mm"]
-        r[f"{A} ride frequency [Hz]"] = m.ride[axle]["body_freq"]
-        r[f"{A} body damping ratio [-] (placeholder dampers)"] = m.ride[axle]["body_damping"]
-    return {kk: float(v) for kk, v in r.items()}
+        def src(mm, kind, k, axle=axle):
+            return {"kin": mm.kin[axle], "veh": mm.summary[axle], "ride": mm.ride[axle]}[kind][k]
+        out.append({"group": f"{axle.capitalize()} axle", "rows": [[lab, f(src(ref, kd, k)), f(src(m, kd, k)), 0] for lab, kd, k in _AXLE]})
+    return out
 
 
 # ---------------------------------------------------------------- API
 def variants():
-    have = {f.name for f in (params.INPUTS / "variants").glob("*.yaml")}
-    return json.dumps({"items": [{"file": f, "group": g, "label": lab} for f, (g, lab) in VARIANTS.items() if f in have],
-                       "as_is": AS_IS})
+    groups = {}
+    for v in web_variants():
+        groups.setdefault(v["group"], {"group": v["group"], "exclusive": v["exclusive"], "items": []})["items"].append(
+            {"file": v["file"], "label": v["label"], "description": v["description"]})
+    return json.dumps({"groups": list(groups.values()), "as_is": SU.AS_IS})
 
 
 def road_presets():
@@ -218,16 +138,39 @@ def road_points(name):
     return json.dumps(d["points"])
 
 
-def road_sim(points_json, v0_kmh=0.0):
-    """Lap-time sim of the current setup on a road given as [[lat, lon, elevation], ...]."""
-    m = _state["model"]
-    tr = RD.build_track(json.loads(points_json))
+def _road_lines(points_json, width):
+    """Base track + the three driving lines; cached (they depend on the road and width, not on the setup)."""
+    import hashlib
+    key = (hashlib.md5(points_json.encode()).hexdigest(), round(float(width), 2))
+    c = _state.setdefault("lines_cache", {})
+    if key not in c:
+        base = RD.build_track(json.loads(points_json))
+        lines = {k: RLN.line_track(base, k, width) for k in RLN.LINES}
+        c.clear()
+        c[key] = (base, lines, {})                                      # {} = memo of the reference ("car as is") times
+    return c[key]
+
+
+def road_sim(points_json, v0_kmh=0.0, line="centre", width=6.0):
+    """Lap-time sim of the current setup on a road given as [[lat, lon, elevation], ...], along the chosen line."""
+    m, ref = _state["model"], _state["ref"]
+    base, lines, ref_memo = _road_lines(points_json, width)
+    tr = lines[line][0]
     r = m.lap.run(tr, v0=v0_kmh / 3.6)
-    t_ref = _state["ref"].lap.run(tr, v0=v0_kmh / 3.6).time
+    times = {k: {"label": RLN.LINES[k], "time": m.lap.run(lt[0], v0=v0_kmh / 3.6).time if k != line else r.time,
+                 "time_ref": ref_memo.setdefault((k, v0_kmh), ref.lap.run(lt[0], v0=v0_kmh / 3.6).time)} for k, lt in lines.items()}
     step = max(1, int(round(10.0 / (tr.s[1] - tr.s[0]))))           # ~10 m spacing for the browser
     idx = np.r_[np.arange(0, len(tr.s), step), len(tr.s) - 1]
     share = {k: float((r.limit == k).mean()) for k in ("power", "traction", "corner", "brake")}
-    return json.dumps({"time": r.time, "time_ref": t_ref, "length": tr.length, "vmax": float(r.v.max() * 3.6), "avg": tr.length / r.time * 3.6,
+    # zoom geometry in the road's local frame (m, east/north), every 4 m along the centreline
+    g = np.r_[np.arange(0, len(base.s), 2), len(base.s) - 1]
+    le, ri = RLN.edges(base, width)
+    geo = {"c": base.xy[g].round(2).tolist(), "left": le[g].round(2).tolist(), "right": ri[g].round(2).tolist(),
+           "lines": {k: lt[2][g].round(2).tolist() for k, lt in lines.items()}, "s": base.s[g].round(1).tolist()}
+    shifts, brakes = RLN.key_points(tr, r, base)
+    return json.dumps({"time": r.time, "time_ref": times[line]["time_ref"], "line": line, "width": width, "lines": times, "geo": geo,
+                       "shifts": shifts, "brakes": brakes,
+                       "length": tr.length, "vmax": float(r.v.max() * 3.6), "avg": tr.length / r.time * 3.6,
                        "climb": float(tr.elev[-1] - tr.elev[0]), "min_radius": float(1 / max(abs(tr.kappa).max(), 1e-6)),
                        "s": tr.s[idx].round(1).tolist(), "v": (r.v[idx] * 3.6).round(1).tolist(), "elev": tr.elev[idx].round(1).tolist(),
                        "gear": r.gear[idx].tolist(), "rpm": r.rpm[idx].round(0).tolist(), "latlon": tr.latlon[idx].round(6).tolist(), "share": share,
@@ -237,30 +180,61 @@ def road_sim(points_json, v0_kmh=0.0):
 def setup(variants_json):
     v = json.loads(variants_json)
     raw = params.load(*v).raw
-    traw = _tyre_raw(raw)
+    traw = SU.tyre_raw(raw)
     base = params.load().raw
+    ng, ng_base = SU.n_gears(raw), SU.n_gears(base)
     out = []
-    for grp, lab, path, lo, hi, step in SLIDERS:
-        out.append({"group": grp, "label": lab, "path": path, "min": lo, "max": hi, "step": step,
-                    "value": round(_base_value(raw, traw, path), 4), "baseline": round(_base_value(base, traw, path), 4)})
+    for grp, lab, path, lo, hi, step in SU.PARAMS:
+        tab, sec = SU.TABS.get(grp, (grp, grp))
+        val, ref = SU.base_value(raw, traw, path), SU.base_value(base, traw, path)
+        gear = int(path[-1]) if path.startswith("@gear_") else 0
+        out.append({"tab": tab, "section": sec, "label": lab, "path": path, "min": lo, "max": hi, "step": step,
+                    "value": round(val, 4), "base": val, "baseline": round(ref, 4),
+                    "disabled": gear > ng, "baseline_text": "no such gear" if gear > ng_base else None})
     _state["raw"], _state["traw"], _state["variants"] = raw, traw, v
+    _state["bases"] = {s_["path"]: s_["base"] for s_ in out}
     return json.dumps(out)
 
 
-def compute(variants_json, sliders_json):
+def compute(variants_json, values_json):
     v = json.loads(variants_json)
     if v != _state.get("variants"):
         setup(variants_json)
-    ov, tov = _overrides(_state["raw"], _state["traw"], json.loads(sliders_json))
+    values = {p: x for p, x in json.loads(values_json).items() if p in _state["bases"]}
+    ov, tov = SU.overrides(_state["raw"], values, _state["bases"])
     if "ref" not in _state:
         _state["ref"] = Model([])
     m = Model(v, ov, tov)
     _state["model"] = m
     ref = _state["ref"]
     gearing = {"current": PT.gearing_table(m.p, m.lap.pt), "ref": PT.gearing_table(ref.p, ref.lap.pt)}
-    better = {"0–100 km/h [s]": -1, "1 km standing start [s]": -1, "Top speed [km/h]": 1, "Max lateral acceleration [g]": 1}
-    return json.dumps({"results": _results(m), "baseline": _results(ref), "better": better, "gearing": gearing, "limit": m.summary["limit"],
-                       "curves": _curves(m), "curves_ref": _curves(ref), "n_overrides": len(ov) + len(tov)})
+    return json.dumps({"results": _results(m, ref), "gearing": gearing, "limit": m.summary["limit"], "max_ay": float(m.summary["max_ay_g"]),
+                       "curves": _curves(m), "curves_ref": _curves(ref), "n_overrides": len(ov) + len(tov),
+                       "sweep": float(m.rear.sweep_angle)})
+
+
+def dampers_tyre():
+    """Damper F-v curves, tyre lateral force and the handling diagram (this setup vs the car as is)."""
+    m, ref = _state["model"], _state["ref"]
+    out = {}
+    for axle in ("front", "rear"):
+        d = m.p.suspension[axle].damper
+        c = m.p.dampers[d.curve]
+        reb = c.rebound_soft + d.setting * (c.rebound_hard - c.rebound_soft)
+        out[axle] = {"model": str(d.model), "v": [float(x) for x in c.velocity], "reb": [float(x) for x in reb],
+                     "comp": [float(x) for x in c.compression], "soft": [float(x) for x in c.rebound_soft],
+                     "hard": [float(x) for x in c.rebound_hard]}
+    al = np.linspace(0, 0.25, 51)
+    W = m.ride["front"]["wheel_load"]
+    out["tyre"] = {"slip": np.degrees(al).round(3).tolist(), "loads": [round(W * f) for f in (0.5, 1.0, 1.5)],
+                   "cur": [(m.veh.tyre.Fy(al, W * f) / MM).round(4).tolist() for f in (0.5, 1.0, 1.5)],
+                   "ref": [(ref.veh.tyre.Fy(al, W * f) / MM).round(4).tolist() for f in (0.5, 1.0, 1.5)]}
+    hd = {}
+    for key, mm in (("cur", m), ("ref", ref)):
+        ay = np.linspace(0.5, mm.summary["max_ay_g"] * G * 0.99, 25)
+        hd[key] = {"ay": (ay / G).round(4).tolist(), "delta": [round(float(np.degrees(mm.veh.solve(a)["delta_kin"])), 4) for a in ay]}
+    out["handling"] = hd
+    return json.dumps(out)
 
 
 def _ic_rc(axle, L, R):
@@ -289,8 +263,15 @@ def _ic_rc(axle, L, R):
     return lines, (None if rc is None else (rc * MM).round(1).tolist())
 
 
-def pose(heave_mm, roll_deg, steer_mm):
+def _shapes(prims, view):
+    items = sorted(((D.project(p, view), p) for p in prims), key=lambda it: it[0][2])
+    return [{"k": kind, "p": (xy * MM).round(1).tolist(), "c": p["color"], "a": p["alpha"], "w": p.get("lw", 1.5)}
+            for (kind, xy, _), p in items]
+
+
+def pose(heave_mm, roll_deg, steer_mm, views_json='["front", "rear"]'):
     m = _state["model"]
+    want = set(json.loads(views_json))
     h, phi, st = heave_mm / MM, np.radians(roll_deg), steer_mm / MM
     pts, views = {}, {}
     for axle, obj, sw in (("front", m.front, m.sf), ("rear", m.rear, m.sr)):
@@ -304,18 +285,25 @@ def pose(heave_mm, roll_deg, steer_mm):
         R = {k: (v * [1, -1, 1] if isinstance(v, np.ndarray) and v.shape == (3,) else v) for k, v in R.items()}
         pts[axle] = (L, R, zl, zr)
     for axle in ("front", "rear"):
+        if axle not in want:
+            continue
         L, R, zl, zr = pts[axle]
         prims = D.car_prims(pts, m.p, m.veh.tyre.R0, include=(axle,))
-        items = sorted(((D.project(p, axle), p) for p in prims), key=lambda it: it[0][2])
-        shapes = [{"k": kind, "p": (xy * MM).round(1).tolist(), "c": p["color"], "a": p["alpha"], "w": p.get("lw", 1.5)}
-                  for (kind, xy, _), p in items]
         lines, rc = _ic_rc(axle, L, R)
         read = []
         for side, P, z in (("L", L, zl), ("R", R, zr)):
             cam, toe = K.camber_toe(P["a"] * [1, 1 if side == "L" else -1, 1])
             read.append({"side": side, "travel": round(z * MM, 1), "camber": round(float(np.degrees(cam)), 2),
-                         "toe": round(float(np.degrees(toe) * 60), 1)})
+                         "toe": round(float(np.degrees(toe) * 60), 1), "spring": round(float(P["spring_len"] * MM))})
         ground = [(L["cp"][[1, 2]] * MM).round(1).tolist(), (R["cp"][[1, 2]] * MM).round(1).tolist()]
         rc_h = None if rc is None else round(rc[1] - 0.5 * (ground[0][1] + ground[1][1]), 1)
-        views[axle] = {"shapes": shapes, "ic_lines": lines, "rc": rc, "rc_height": rc_h, "ground": ground, "read": read}
+        sw = m.sf if axle == "front" else m.sr
+        views[axle] = {"shapes": _shapes(prims, axle), "plan": _shapes(prims, "plan_up"), "ic_lines": lines, "rc": rc,
+                       "rc_height": rc_h, "ground": ground, "read": read, "track": round(abs(L["cp"][1] - R["cp"][1]) * MM),
+                       "travel_l": round(zl * MM, 1), "camber_l": round(float(np.degrees(np.interp(zl, sw.travel, sw.camber))), 3)}
+    if want & {"side", "plan"}:
+        prims = D.car_prims(pts, m.p, m.veh.tyre.R0)
+        for view in ("side", "plan"):
+            if view in want:
+                views[view] = {"shapes": _shapes(prims, view), "ground_z": round(float(m.front.ground_z * MM), 1)}
     return json.dumps(views)

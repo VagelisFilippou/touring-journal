@@ -1,4 +1,6 @@
 meta:
+  group: "Engine"
+  label: "Twin DCOE + 300° cam, ~140 PS (idea)"
   name: engine_dcoe_300cam
   description: "Planned build idea: twin 40 DCOE + 300° cam + head work, ~140 PS (GH p.75: 135-145 PS). Shape estimated (torque shifted up)"
 set:

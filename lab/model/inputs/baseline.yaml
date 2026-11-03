@@ -221,6 +221,10 @@ driveline:
   driveline_inertia_at_wheels: {value: 0.10, unit: kgm2, src: [EST], conf: D, note: "propshaft+diff+halfshafts, per axle, excl. engine"}
 
 # -------------------------------------------------------------------------------------
+driver:   # how the simulated driver uses the gearbox (display of shift points; the lap time assumes ideal shifting)
+  downshift_rpm: {value: 5500, unit: rpm, src: [EST], conf: C, note: "under braking, change down one gear at a time once the lower gear lands at or below this (heel-and-toe)"}
+  min_gear_time: {value: 1.5, unit: s, src: [EST], conf: C, note: "no gear held shorter than this; a short stint takes the higher neighbouring gear (never over the rev limit)"}
+
 brakes:
   front_disc_diameter:  {value: 256, unit: mm, src: [TD], conf: A}
   front_disc_thickness: {value: 12.9, unit: mm, src: [TD], conf: A}

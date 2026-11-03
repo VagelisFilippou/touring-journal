@@ -107,6 +107,8 @@ class Track:
     elev: np.ndarray
     xy: np.ndarray
     latlon: np.ndarray
+    lat0: float = 0.0          # origin of the local x/y frame (east/north, m)
+    lon0: float = 0.0
 
     @property
     def length(self):
@@ -114,27 +116,32 @@ class Track:
 
 
 def build_track(latlon_ele, name="road", ds=2.0, smooth_m=12.0, elev_smooth_m=150.0):
-    """latlon_ele: array (N,3) lat, lon, elevation -> Track (curvature from a smoothing spline)."""
-    from scipy.interpolate import splev, splprep
+    """latlon_ele: array (N,3) lat, lon, elevation -> Track.
+    The polyline is resampled, smoothed with a Gaussian of `smooth_m` metres (OSM/routing lines zig-zag),
+    then re-parameterised by the arc length *of the smoothed line*, so distance, curvature and the drawn
+    line all refer to the same path."""
     from scipy.ndimage import gaussian_filter1d
     P = np.asarray(latlon_ele, float)
-    xy = _xy(P[:, :2], P[0, 0], P[0, 1])
+    lat0, lon0 = float(P[0, 0]), float(P[0, 1])
+    xy = _xy(P[:, :2], lat0, lon0)
     keep = np.r_[True, np.hypot(*np.diff(xy, axis=0).T) > 0.5]      # drop duplicate points
     xy, P = xy[keep], P[keep]
     s_raw = np.r_[0, np.cumsum(np.hypot(*np.diff(xy, axis=0).T))]
-    # resample uniformly, then smooth x/y with a Gaussian of `smooth_m` metres before differentiating
-    s = np.arange(0, s_raw[-1], ds)
-    x, y = np.interp(s, s_raw, xy[:, 0]), np.interp(s, s_raw, xy[:, 1])
-    sig = smooth_m / ds
+    u = np.arange(0, s_raw[-1], ds / 2)                              # fine uniform sampling of the raw line
+    x, y = np.interp(u, s_raw, xy[:, 0]), np.interp(u, s_raw, xy[:, 1])
+    sig = smooth_m / (ds / 2)
     xs, ys = gaussian_filter1d(x, sig, mode="nearest"), gaussian_filter1d(y, sig, mode="nearest")
-    dx, dy = np.gradient(xs, ds), np.gradient(ys, ds)
+    zs = gaussian_filter1d(np.interp(u, s_raw, P[:, 2]), elev_smooth_m / (ds / 2), mode="nearest")
+    s_sm = np.r_[0, np.cumsum(np.hypot(np.diff(xs), np.diff(ys)))]   # arc length of the smoothed line
+    s = np.arange(0, s_sm[-1], ds)
+    X, Y, z = np.interp(s, s_sm, xs), np.interp(s, s_sm, ys), np.interp(s, s_sm, zs)
+    dx, dy = np.gradient(X, ds), np.gradient(Y, ds)
     ddx, ddy = np.gradient(dx, ds), np.gradient(dy, ds)
     kappa = (dx * ddy - dy * ddx) / np.maximum((dx * dx + dy * dy) ** 1.5, 1e-9)
-    z = gaussian_filter1d(np.interp(s, s_raw, P[:, 2]), elev_smooth_m / ds, mode="nearest")
     grade = np.gradient(z, ds)
-    lat = np.interp(s, s_raw, P[:, 0])
-    lon = np.interp(s, s_raw, P[:, 1])
-    return Track(name, s, kappa, grade, z, np.c_[xs, ys], np.c_[lat, lon])
+    lat = lat0 + np.degrees(Y / R_EARTH)
+    lon = lon0 + np.degrees(X / (R_EARTH * math.cos(math.radians(lat0))))
+    return Track(name, s, kappa, grade, z, np.c_[X, Y], np.c_[lat, lon], lat0, lon0)
 
 
 def load_road(name, **kw):

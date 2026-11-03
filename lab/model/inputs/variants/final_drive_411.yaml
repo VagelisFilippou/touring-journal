@@ -1,4 +1,6 @@
 meta:
+  group: "Final drive"
+  label: "4.11"
   name: final_drive_411
   description: "Final drive 4.11 (LSD type unchanged)"
 set:

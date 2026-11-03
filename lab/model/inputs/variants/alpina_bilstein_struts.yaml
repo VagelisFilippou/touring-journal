@@ -1,4 +1,6 @@
 meta:
+  group: "Chassis"
+  label: "Alpina Bilstein struts (−1.5° camber)"
   name: alpina_bilstein_struts
   description: "Alpina Bilstein USD 'yellow' front struts (on hand, keep): ~−1.5° built-in camber, spring perch ~20 mm lower"
 set:

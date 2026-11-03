@@ -1,4 +1,6 @@
 meta:
+  group: "Gearbox"
+  label: "Getrag 245/4 overdrive"
   name: gearbox_245_4_od
   description: "Getrag 245/4 overdrive 5-speed (E21). Check if P-0172 is this or the 245/2 close ratio"
 set:
