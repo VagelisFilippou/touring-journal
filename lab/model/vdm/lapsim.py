@@ -35,6 +35,9 @@ class Result:
 class LapSim:
     def __init__(self, p, vehicle: Vehicle | None = None, tyre_overrides=None, brake_eff=0.92, driver_margin=1.0):
         self.p = p
+        if "driver" in p and "pace" in p.driver:                 # share of the grip limit the driver uses
+            driver_margin = p.driver.pace
+        self.pace = driver_margin
         self.veh = vehicle or Vehicle(p, tyre_overrides=tyre_overrides)
         self.pt = Powertrain(p, tyre_overrides)
         self.m = self.veh.m
@@ -123,32 +126,47 @@ class LapSim:
         lim = "power" if F_eng <= min(F_trac, F_tyre) else "traction"
         return ax, g, lim
 
-    def _brake(self, v, ay, grade):
+    def _brake(self, v, ay, grade, cap=None, factor=1.0):
+        """Deceleration magnitude: tyre-limited (times `factor` when the brake split has moved, e.g. hot brakes),
+        at most `cap` from the available brake torque, plus drag / rolling / gradient."""
         res = self.pt.resistance(v, self.m, grade)
-        return self._gg_brake(ay) + res / self.m                # deceleration magnitude
+        d = self._gg_brake(ay) * factor
+        if cap is not None:
+            d = min(d, cap)
+        return d + res / self.m
 
-    def run(self, track, v0=0.0, v_end=None):
+    def run(self, track, v0=0.0, v_end=None, dec_cap=None, brake_factor=None):
+        """dec_cap / brake_factor: optional per-point brake limits (vdm.brakes: hot brakes)."""
         s, kap, grd = track.s, track.kappa, track.grade
         n = len(s)
         ds = np.diff(s)
         v_c = np.minimum(np.sqrt(self.ay_max / np.maximum(np.abs(kap), 1e-6)), self.v_top)
-        # forward pass
-        vf = np.empty(n); vf[0] = min(v0, v_c[0])
-        gear = np.zeros(n, int); lim = np.empty(n, object); axf = np.zeros(n)
-        ax_prev = 0.0
-        for i in range(n - 1):
-            ay = vf[i] ** 2 * kap[i]
-            ax, g, l = self._accel(vf[i], ay, grd[i], ax_prev)
-            ax_prev = ax
-            gear[i], lim[i], axf[i] = g, l, ax
-            vf[i + 1] = min(np.sqrt(max(vf[i] ** 2 + 2 * ax * ds[i], 0.01)), v_c[i + 1])
-            if vf[i + 1] == v_c[i + 1]:
-                lim[i + 1] = "corner"
+        # forward pass (full throttle from v0); independent of the brakes, so cached per track and start speed
+        key = (id(track), n, float(s[-1]), float(kap.sum()), round(float(v0), 4))
+        cache = self.__dict__.setdefault("_fwd", {})
+        if key in cache:
+            vf, lim = cache[key][0].copy(), cache[key][1].copy()
+        else:
+            vf = np.empty(n); vf[0] = min(v0, v_c[0])
+            lim = np.empty(n, object)
+            ax_prev = 0.0
+            for i in range(n - 1):
+                ay = vf[i] ** 2 * kap[i]
+                ax, g, l = self._accel(vf[i], ay, grd[i], ax_prev)
+                ax_prev = ax
+                lim[i] = l
+                vf[i + 1] = min(np.sqrt(max(vf[i] ** 2 + 2 * ax * ds[i], 0.01)), v_c[i + 1])
+                if vf[i + 1] == v_c[i + 1]:
+                    lim[i + 1] = "corner"
+            if len(cache) > 12:
+                cache.clear()
+            cache[key] = (vf.copy(), lim.copy())
         # backward pass
         vb = np.empty(n); vb[-1] = v_c[-1] if v_end is None else min(v_end, v_c[-1])
         for i in range(n - 1, 0, -1):
             ay = vb[i] ** 2 * kap[i]
-            d = self._brake(vb[i], ay, grd[i])
+            d = self._brake(vb[i], ay, grd[i], None if dec_cap is None else dec_cap[i],
+                            1.0 if brake_factor is None else brake_factor[i])
             vb[i - 1] = min(np.sqrt(vb[i] ** 2 + 2 * d * ds[i - 1]), v_c[i - 1])
         v = np.minimum(vf, vb)
         lim = np.where(vb < vf - 1e-6, "brake", lim)
@@ -160,6 +178,19 @@ class LapSim:
         gear = self._gears(v, lim, s)
         rpm = np.array([self.pt.engine_speed(vv, g) for vv, g in zip(v, gear)]) * 60 / (2 * np.pi)
         return Result(s, v, t, gear + 1, np.maximum(rpm, self.pt.w_idle * 60 / (2 * np.pi)), ax, v * v * kap, lim)
+
+    def run_road(self, track, v0=0.0, flying=False):
+        """A road from a standing / rolling start (v0), or on a closed circuit a flying lap: the car crosses the
+        line at the speed it will have at the end of the lap (iterated until start and finish speeds agree)."""
+        if not (flying and getattr(track, "closed", False)):
+            return self.run(track, v0=v0)
+        x = self.run(track, v0=0.0).v[-1]
+        for _ in range(10):
+            r = self.run(track, v0=x, v_end=x)
+            if abs(r.v[-1] - x) < 0.02:
+                break
+            x = r.v[-1]
+        return r
 
     def accel_times(self, speeds_kmh=(60, 80, 100, 120, 140), dist_m=(400, 1000)):
         from .roads import straight

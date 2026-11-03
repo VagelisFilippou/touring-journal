@@ -1,0 +1,9 @@
+meta:
+  group: "Brake pads"
+  label: "Pagid RS29 (race pad)"
+  name: brake_pads_pagid_rs29
+  description: "Pagid RS29 endurance race pad: friction rises with temperature, working range 400-700 °C (short-term 750). Poor when cold, wears discs faster; check that RS29 is made in the ATE 2002 caliper shape"
+set:
+  brakes.front_pad_mu:  {value: 0.40, unit: "-", src: [PAGID-RS29], conf: C, note: "0.40 cold"}
+  brakes.pad_mu_factor: {value: [1.0, 1.075, 1.13, 1.175, 1.20, 1.22, 1.20, 1.10], unit: "-", src: [PAGID-RS29, EST], conf: C,
+                         note: "0.40 cold, 0.43 at 100 °C, 0.47 at 300 °C, 0.49 at 550 °C (dealer data sheet); above 650 °C an assumed drop"}

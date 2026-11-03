@@ -41,6 +41,12 @@ sources:
   MK87:       {kind: secondary, ref: "Motor Klassik 3/1987 Cd list via e9-forum.de: 02 Cd 0.397 (factory) / 0.471 (DB tunnel)"}
   WEB-02FAQ:  {kind: forum, ref: "bmw2002faq.com threads (search snippets; verify in browser) – see docs/extracts/web_chassis_extract.md"}
   PAC:        {kind: book, ref: "Pacejka & Besselink, Tire and Vehicle Dynamics, 3rd ed. (2012), Ch.4 + Appendix 3"}
+  ATE-BR:     {kind: supplier, ref: "ATE (Continental) brake parts presentation, ate-brakes.com/media/2306/bp_praesentation_pdf_en.pdf p7 'Braking behaviour of ATE Original brake pads': μ 0.45 first application, 0.40 cold, 0.53 slowing from high speed, 0.42 first use at high temperature (competitor 0.32/0.33/0.40/0.29); test temperature not stated. Copy of the chart: docs/extracts/ate_pad_friction_chart.png"}
+  LIMPERT:    {kind: book, ref: "R. Limpert, Brake Design and Safety (SAE): solid rotor convection h = 0.04 (k/D) Re^0.8 for Re < 2.4e5 (free stream)"}
+  R90:        {kind: official, ref: "UNECE Regulation 90 (replacement brake linings): friction of a replacement pad must stay within ±15 % of the original-equipment pad in the type-approval tests"}
+  PAGID-RS29: {kind: supplier, ref: "Pagid RS29 data as listed by Courtenay Sport (courtenaysport.co.uk, Pagid RS29 pads for Alcon 4497): μ 0.40 cold, 0.43 at 100 °C, 0.47 at 300 °C, 0.49 at 550 °C; constant working range 400-700 °C, 750 °C short-term"}
+  FERODO-DS2500: {kind: supplier, ref: "Ferodo Racing, DS2500 product page (ferodoracing.com): average friction coefficient 0.41 over a working temperature range of 0-500 °C"}
+  APR-DISC:   {kind: supplier, ref: "AP Racing, 'Disc temperatures' (apracing.com): racing disc bulk temperatures normally 400-600 °C for best performance"}
   # --- our own derivations --------------------------------------------------------------
   EST:        {kind: estimate, ref: "Engineering estimate; method written next to the value or in docs/estimates.md"}
   EST-FRAME:  {kind: estimate, ref: "Derived from MAN-FRAME / MAN-RA39 drawing + assumptions, see docs/estimates.md §Hardpoints"}

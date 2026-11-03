@@ -1,0 +1,13 @@
+meta:
+  group: "Brakes"
+  label: "Vented E21 323i discs 255 × 22 + Turbo calipers"
+  name: brakes_vented_E21_turbo
+  description: "The 2026 vented front-brake upgrade: E21 323i hubs and vented discs (NOS BALO 02038), restored ATE 2002 Turbo 4-piston calipers (40 mm pistons, spaced), Neue Klasse shields cut Alpina-style"
+set:
+  brakes.front_disc_diameter:  {value: 255, unit: mm, src: [EST], conf: C, note: "E21 323i vented disc 255 x 22 (BMW 34 11 1 117 038); measure the BALO discs"}
+  brakes.front_disc_thickness: {value: 22, unit: mm, src: [EST], conf: C}
+  brakes.front_effective_radius: {value: 104, unit: mm, src: [EST], conf: C, note: "same pad, disc 0.5 mm smaller in radius"}
+  brakes.front_thermal.mass:   {value: 5.4, unit: kg, src: [EST], conf: C, note: "vented 255 x 22 incl. hat; weigh one to confirm"}
+  brakes.front_thermal.area:   {value: 0.20, unit: m2, src: [EST], conf: C, note: "faces + rim + hat + vane passages"}
+  brakes.front_thermal.hv:     {value: 8.0, unit: W/m2K, src: [EST], conf: D, note: "vanes pump air: with the larger area about 2.4x the heat rejection of the solid disc"}
+  brakes.front_thermal.cooling_factor: {value: 1.15, unit: "-", src: [EST], conf: D, note: "NK shields mounted Alpina-style scoop air onto the disc"}

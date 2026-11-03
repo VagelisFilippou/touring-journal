@@ -48,6 +48,7 @@ UNITS = {
     "W": 1.0, "kW": 1e3, "PS": 735.49875, "hp": 745.69987,
     "Pa": 1.0, "kPa": 1e3, "bar": 1e5, "psi": 6894.757,
     "kgm2": 1.0, "L": 1e-3, "cc": 1e-6, "kg/m3": 1.0, "s": 1.0, "Hz": 1.0,
+    "degC": 1.0, "W/m2K": 1.0, "J/kgK": 1.0,          # temperatures stay in °C (brakes)
 }
 CONF_LEVELS = ("A", "B", "C", "D")
 
@@ -182,8 +183,8 @@ def load(*variants: str, base: str | None = None, overrides: dict | None = None)
     return p
 
 
-GROUP_ORDER = ["Chassis", "Wheels & tyres", "Engine", "Gearbox", "Final drive", "Combinations", "My setups"]
-EXCLUSIVE_GROUPS = {"Engine", "Gearbox", "Final drive", "Wheels & tyres"}
+GROUP_ORDER = ["Chassis", "Wheels & tyres", "Brakes", "Brake pads", "Engine", "Gearbox", "Final drive", "Combinations", "My setups"]
+EXCLUSIVE_GROUPS = {"Engine", "Gearbox", "Final drive", "Wheels & tyres", "Brakes", "Brake pads"}
 
 
 _CATALOG = {}

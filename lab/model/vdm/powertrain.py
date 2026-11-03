@@ -47,8 +47,29 @@ class Powertrain:
     def engine_speed(self, v, g):
         return v / self.r * self.overall(g)
 
+    DV = 0.05                                                    # m/s, drive-force table step
+
     def drive_force(self, v):
-        """Best gear and wheel force (N) at speed v (full throttle, ideal shifting)."""
+        """Best gear and wheel force (N) at speed v (full throttle, ideal shifting).
+        Looked up in a table (step DV) built once: the lap simulation asks this tens of thousands of times per lap."""
+        tab = getattr(self, "_tab", None)
+        if tab is None:
+            v_hi = self.w_max * self.r / self.overall(len(self.gears) - 1) * 1.02
+            grid = np.arange(0.0, v_hi + self.DV, self.DV)
+            ex = [self._drive_force_exact(x) for x in grid]
+            tab = self._tab = (grid, np.array([e[0] for e in ex]), np.array([e[1] for e in ex]))
+        grid, F, g = tab
+        x = v / self.DV
+        i = int(x)
+        if i < 0 or i >= len(grid) - 1:
+            return self._drive_force_exact(v)
+        f = x - i
+        gi = g[i] if f < 0.5 else g[i + 1]
+        if g[i] != g[i + 1] or F[i] == 0.0 or F[i + 1] == 0.0:   # gear change or rev limiter inside the step: exact
+            return self._drive_force_exact(v)
+        return F[i] + f * (F[i + 1] - F[i]), int(gi)
+
+    def _drive_force_exact(self, v):
         best_F, best_g = 0.0, len(self.gears) - 1
         for g in range(len(self.gears)):
             w = max(self.engine_speed(v, g), self.w_idle)       # clutch slip below idle
